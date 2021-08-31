@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07131D"/>
+      <stop offset="1" stop-color="#0B2842"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(124 108) rotate(45) scale(248)">
+      <stop stop-color="#2FF3DF" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#2FF3DF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(380 344) rotate(45) scale(232)">
+      <stop stop-color="#2F8CFF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#2F8CFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bubbleA" x1="102" y1="118" x2="282" y2="276" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1FBFF"/>
+      <stop offset="1" stop-color="#2FF3DF"/>
+    </linearGradient>
+    <linearGradient id="bubbleB" x1="232" y1="180" x2="404" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1FBFF"/>
+      <stop offset="1" stop-color="#2F8CFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="132" fill="url(#bg)"/>
+  <rect x="24" y="24" width="464" height="464" rx="132" fill="url(#glowA)"/>
+  <rect x="24" y="24" width="464" height="464" rx="132" fill="url(#glowB)"/>
+  <circle cx="292" cy="271" r="196" stroke="white" stroke-opacity="0.08" stroke-width="12"/>
+  <rect x="86" y="118" width="224" height="160" rx="72" fill="url(#bubbleA)"/>
+  <rect x="198" y="214" width="190" height="142" rx="64" fill="url(#bubbleB)"/>
+  <circle cx="144" cy="198" r="20" fill="#091B2C" fill-opacity="0.42"/>
+  <circle cx="206" cy="198" r="20" fill="#091B2C" fill-opacity="0.42"/>
+  <circle cx="268" cy="198" r="20" fill="#091B2C" fill-opacity="0.42"/>
+  <path d="M252 281H274L302 233L334 301H368" stroke="white" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

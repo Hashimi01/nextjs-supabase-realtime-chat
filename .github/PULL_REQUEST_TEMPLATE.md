@@ -1,53 +1,22 @@
-<!--- Provide a general summary of your changes in the Title above -->
+## Summary
 
-### Description
-<!--- Describe your changes in detail -->
+- Describe the purpose of this pull request
+- Explain the main behavior or files changed
 
-### Related Issue
-<!--- This project only accepts pull requests related to open issues -->
-<!--- If suggesting a new feature or change, please discuss it in an issue first -->
-<!--- If fixing a bug, there should be an issue describing it with steps to reproduce -->
-<!--- Please link to the issue here: -->
+## Validation
 
-### Motivation and Context
-<!--- Why is this change required? What problem does it solve? -->
-<!--- If it fixes an open issue, please link to the issue here. -->
+- List the checks, tests, or manual steps you ran
+- Mention any areas that still need verification
 
-### How Has This Been Tested?
-<!--- Please describe in detail how you tested your changes. -->
-<!--- Include details of your testing environment, and the tests you ran to -->
-<!--- see how your change affects other areas of the code, etc. -->
+## Notes
 
-### Screenshots (if appropriate):
+- Link any related issue or task if one exists
+- Add screenshots only when a UI change needs visual review
 
-### All Submissions:
+## Checklist
 
-* [ ] Have you followed the guidelines in our Contributing document?
-* [ ] Have you checked to ensure there aren't other open [Pull Requests](../../../pulls) for the same update/change?
-
-<!-- You can erase any parts of this template not applicable to your Pull Request. -->
-
-### New Feature Submissions:
-
-1. [ ] Does your submission pass tests?
-2. [ ] Have you lint your code locally prior to submission?
-
-### Changes to Core Features:
-
-* [ ] Have you added an explanation of what your changes do and why you'd like us to include them?
-* [ ] Have you written new tests for your core changes, as applicable?
-* [ ] Have you successfully ran tests with your changes locally?
-
-### Types of changes
-<!--- What types of changes does your code introduce? Put an `x` in all the boxes that apply: -->
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] I have read the **CONTRIBUTING** document.
-- [ ] My code follows the code style of this project.
-- [ ] My change requires a change to the documentation.
-- [ ] I have updated the documentation accordingly.
-- [ ] I have added tests to cover my changes.
-- [ ] All new and existing tests passed.
-
-<!-- Before submitting, click on the preview tab to check your work so far-->
+- [ ] I reviewed the contribution guidelines
+- [ ] My change is focused and ready for review
+- [ ] I updated relevant documentation when needed
+- [ ] I ran appropriate local checks
+- [ ] I described any follow-up work that remains
