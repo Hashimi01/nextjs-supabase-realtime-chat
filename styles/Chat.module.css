@@ -1,9 +1,12 @@
-/* WhatsApp-like Chat Styles - Improved */
+/* Realtime chat — dark glass surface */
 
 .header {
   top: 0;
   position: fixed;
-  background: #075e54;
+  background: var(--bg-elevated);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
   height: 60px;
   width: 100%;
   padding: 0 16px;
@@ -11,12 +14,12 @@
   align-items: center;
   justify-content: space-between;
   z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .headerText {
   flex: 1;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -24,15 +27,16 @@
 
 .headerText h1 {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .headerUser {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-muted);
   margin: 2px 0 0 0;
   display: flex;
   align-items: center;
@@ -57,7 +61,8 @@
 }
 
 .statusDotOnline {
-  background: #25d366;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .statusDotOffline {
@@ -65,13 +70,13 @@
 }
 
 .connectionStatus.connected {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .connectionStatus.disconnected {
-  background-color: rgba(255, 99, 71, 0.3);
-  color: #ff6347;
+  background-color: var(--danger-bg);
+  color: var(--danger);
 }
 
 .settings {
@@ -92,13 +97,14 @@
 }
 
 .btn {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass-strong);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-strong);
 }
 
 .btnn {
@@ -111,34 +117,36 @@
 }
 
 .btnnn {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--bg-glass-strong);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: 4px 10px;
   font-size: 11px;
 }
 
 .updateUser {
   padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-primary);
   font-size: 12px;
   margin-right: 5px;
   width: 150px;
 }
 
 .updateUser::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-faint);
 }
 
 .container {
   width: 100%;
   margin: 0;
   padding: 70px 0 80px 0;
-  background: #efeae2;
-  background-image: 
-    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='a' patternUnits='userSpaceOnUse' width='20' height='20' patternTransform='scale(0.5) rotate(0)'%3E%3Crect x='0' y='0' width='100%25' height='100%25' fill='hsla(0,0%25,100%25,1)'/%3E%3Cpath d='M3.25 10h13.5M10 3.25v13.5' stroke-linecap='square' stroke-width='0.5' stroke='hsla(259,0%25,53%25,0.05)' fill='none'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23a)'/%3E%3C/svg%3E");
+  background: var(--chat-surface);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(45, 212, 191, 0.06), transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -148,13 +156,13 @@
 .emptyState {
   text-align: center;
   padding: 60px 20px;
-  color: #667781;
+  color: var(--text-muted);
   font-size: 16px;
 }
 
 .emptyStateIcon {
   margin-left: 8px;
-  color: #25d366;
+  color: var(--accent);
   vertical-align: middle;
 }
 
@@ -180,21 +188,22 @@
 .messageBubble {
   max-width: 85%;
   min-width: 120px;
-  padding: 8px 10px 8px 12px;
-  border-radius: 7.5px;
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--radius-md);
   position: relative;
   word-wrap: break-word;
-  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+  box-shadow: var(--shadow-sm);
   margin: 2px 0;
+  border: 1px solid var(--border-subtle);
 }
 
 .messageAvatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: none;
-  background: rgba(7, 94, 84, 0.12);
-  color: #075e54;
+  border: 1px solid var(--border-subtle);
+  background: var(--chat-accent-soft);
+  color: var(--accent);
   margin-inline-end: 8px;
   display: flex;
   align-items: center;
@@ -213,43 +222,43 @@
 
 .messageAvatar:hover {
   transform: scale(1.05);
-  background: rgba(7, 94, 84, 0.18);
+  background: rgba(20, 184, 166, 0.28);
 }
 
 .messageAvatar:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(7, 94, 84, 0.2);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
 .ownMessage {
-  background: #dcf8c6;
-  border-bottom-right-radius: 2px;
+  background: var(--chat-bubble-own);
+  border-bottom-right-radius: 6px;
   margin-left: auto;
+  border-color: rgba(45, 212, 191, 0.25);
 }
 
 .otherMessage {
-  background: #fff;
-  border-bottom-left-radius: 2px;
+  background: var(--chat-bubble-other);
+  border-bottom-left-radius: 6px;
   margin-right: auto;
 }
 
 .messageText {
   font-size: 14.2px;
   line-height: 19px;
-  color: #111b21;
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   word-wrap: break-word;
   white-space: pre-wrap;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .otherMessage .messageText {
-  color: #111b21;
+  color: var(--text-primary);
 }
 
 .ownMessage .messageText {
-  color: #111b21;
+  color: var(--text-primary);
 }
 
 .messageTime {
@@ -300,12 +309,15 @@
   right: 0;
   display: flex;
   align-items: center;
-  background: #f0f2f5;
-  padding: 6px 8px;
-  box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
+  background: var(--chat-input-bar);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px 10px;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
   z-index: 1000;
   min-height: 62px;
-  gap: 4px;
+  gap: 6px;
 }
 
 .chatAudioPending {
@@ -321,24 +333,24 @@
   min-height: 42px;
   max-height: 100px;
   padding: 9px 12px 11px;
-  background: #fff;
-  border: none;
-  border-radius: 21px;
+  background: var(--bg-glass-strong);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
   font-size: 15px;
-  color: #111b21;
+  color: var(--text-primary);
   outline: none;
   margin: 0 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   resize: none;
   overflow-y: auto;
 }
 
 .messageInput::placeholder {
-  color: #667781;
+  color: var(--text-muted);
 }
 
 .messageInput:focus {
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 .submit {
@@ -347,7 +359,7 @@
   min-width: 42px;
   border-radius: 50%;
   border: none;
-  background: #075e54;
+  background: var(--chat-accent);
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -360,7 +372,7 @@
 }
 
 .submit:hover {
-  background: #0a7c6f;
+  background: #0d9488;
   transform: scale(1.05);
 }
 
@@ -388,8 +400,8 @@
   min-width: 42px;
   border-radius: 50%;
   border: none;
-  background: rgba(7, 94, 84, 0.1);
-  color: #075e54;
+  background: rgba(20, 184, 166, 0.1);
+  color: var(--chat-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -400,7 +412,7 @@
 }
 
 .attachButton:hover {
-  background: rgba(7, 94, 84, 0.2);
+  background: rgba(20, 184, 166, 0.2);
   transform: scale(1.05);
 }
 
@@ -412,8 +424,8 @@
 .buttonSpinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(7, 94, 84, 0.2);
-  border-top-color: #075e54;
+  border: 2px solid rgba(20, 184, 166, 0.2);
+  border-top-color: var(--chat-accent);
   border-radius: 50%;
   animation: chatSpin 0.8s linear infinite;
 }
@@ -490,8 +502,8 @@
 }
 
 .pendingAttachmentFile {
-  background: rgba(7, 94, 84, 0.12);
-  color: #075e54;
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--chat-accent);
   border-radius: 10px;
   padding: 18px 12px;
   display: flex;
@@ -515,13 +527,13 @@
 
 .pendingCaptionInput:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(7, 94, 84, 0.15);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
 }
 
 .pendingNotice {
   margin-top: 8px;
   font-size: 12px;
-  color: #667781;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -539,7 +551,7 @@
 .pendingAudioDelete {
   border: none;
   background: rgba(0,0,0,0.08);
-  color: #111b21;
+  color: var(--text-primary);
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -569,8 +581,8 @@
 
 .pendingAudioPlay {
   border: none;
-  background: rgba(7, 94, 84, 0.15);
-  color: #075e54;
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--chat-accent);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -582,12 +594,12 @@
 }
 
 .pendingAudioPlay:hover {
-  background: rgba(7, 94, 84, 0.25);
+  background: rgba(20, 184, 166, 0.25);
 }
 
 .pendingAudioTime {
   font-size: 13px;
-  color: #111b21;
+  color: var(--text-primary);
   min-width: 36px;
 }
 
@@ -614,12 +626,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ffffff;
+  background: var(--bg-glass-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 6px 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-sm);
   font-size: 13px;
-  color: #111b21;
+  color: var(--text-primary);
   max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -707,7 +720,7 @@
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
-  color: #075e54;
+  color: var(--chat-accent);
   text-decoration: none;
   font-size: 14px;
   transition: background 0.2s;
@@ -731,14 +744,14 @@
   gap: 6px;
   margin-top: 6px;
   font-size: 12px;
-  color: #667781;
+  color: var(--text-muted);
 }
 
 .uploadingSpinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(7, 94, 84, 0.15);
-  border-top-color: #075e54;
+  border: 2px solid rgba(20, 184, 166, 0.15);
+  border-top-color: var(--chat-accent);
   border-radius: 50%;
   animation: chatSpin 0.9s linear infinite;
 }
@@ -768,7 +781,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #f0f2f5;
+  background: rgba(15, 23, 42, 0.92);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -777,7 +790,7 @@
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  background: #f0f2f5;
+  background: rgba(15, 23, 42, 0.92);
   border-radius: 8px;
   width: 100%;
 }
@@ -874,7 +887,7 @@
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.08);
-  color: #111b21;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;

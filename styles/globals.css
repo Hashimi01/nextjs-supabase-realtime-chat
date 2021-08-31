@@ -1,23 +1,86 @@
+/* Design tokens — dark editorial + teal accent (skills: intentional aesthetic, non-generic SaaS purple) */
+:root {
+  --bg-deep: #070b12;
+  --bg-mid: #0c1220;
+  --bg-elevated: rgba(18, 26, 42, 0.72);
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-strong: rgba(255, 255, 255, 0.07);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #e8edf5;
+  --text-muted: #8b9bb8;
+  --text-faint: #5c6b86;
+
+  --accent: #2dd4bf;
+  --accent-dim: rgba(45, 212, 191, 0.14);
+  --accent-strong: #14b8a6;
+  --accent-glow: rgba(45, 212, 191, 0.35);
+
+  --danger: #fb7185;
+  --danger-bg: rgba(251, 113, 133, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 60px var(--accent-glow);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-full: 999px;
+
+  --sidebar-w: 280px;
+
+  /* Shared chat surfaces (used from CSS modules via var) */
+  --chat-accent: #14b8a6;
+  --chat-accent-soft: rgba(20, 184, 166, 0.18);
+  --chat-surface: #0a101c;
+  --chat-bubble-own: linear-gradient(
+    135deg,
+    rgba(45, 212, 191, 0.22) 0%,
+    rgba(20, 184, 166, 0.12) 100%
+  );
+  --chat-bubble-other: rgba(255, 255, 255, 0.06);
+  --chat-input-bar: rgba(12, 18, 32, 0.92);
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  min-height: 100%;
+}
 
-}
-.background {
-  background-image: url("../public/Background.png") ;
-  background-repeat: no-repeat;
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -30%, rgba(45, 212, 191, 0.15), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(99, 102, 241, 0.12), transparent 50%),
+    linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
   background-attachment: fixed;
-  background-position: center;
-  background-size: cover;
-  height: 100vh;
-  width: 100vw;
-  position: fixed;
-  z-index: -1;
-  top: 0px;
 }
+
+/* Subtle grid overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 100%);
+}
+
+.background {
+  display: none;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -25,4 +88,21 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+.app-root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* Focus rings — accessible, on-brand */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--text-primary);
 }

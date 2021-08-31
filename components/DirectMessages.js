@@ -930,7 +930,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
       {/* Sidebar */}
       <div className={dmStyles.sidebar} style={{ display: showSidebar ? 'flex' : 'none' }}>
         <div className={dmStyles.sidebarHeader}>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: 20, color: '#111b21' }}>المحادثات</h2>
+          <h2 className={dmStyles.sidebarTitle}>المحادثات</h2>
           <div style={{ position: 'relative' }}>
             <input
               className={dmStyles.searchBox}
@@ -967,7 +967,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
         <div className={dmStyles.threadsList}>
           {threadsWithLastMessage.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', color: '#667781' }}>
+            <div className={dmStyles.emptyThreads}>
               لا توجد محادثات. ابحث عن مستخدم لبدء محادثة جديدة
             </div>
           ) : (
@@ -1014,16 +1014,10 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
             <div className={dmStyles.chatHeader}>
               <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                 <button
+                  type="button"
+                  className={dmStyles.backToggle}
                   onClick={() => setShowSidebar(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#fff',
-                    fontSize: 20,
-                    cursor: 'pointer',
-                    marginLeft: 12,
-                    padding: '4px 8px'
-                  }}
+                  aria-label="عرض قائمة المحادثات"
                 >
                   ☰
                 </button>

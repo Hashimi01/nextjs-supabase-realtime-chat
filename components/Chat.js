@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import styles from '../styles/Chat.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
@@ -624,7 +625,12 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
 
     return ( 
     <>
-        <div className={styles.header}>
+        <motion.header
+            className={styles.header}
+            initial={{ y: -18, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
             <div className={styles.headerText}>
                 <h1>محادثة فورية</h1>
                 <p className={styles.headerUser}>
@@ -667,7 +673,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     </div>
                 )}
             </div>
-        </div>
+        </motion.header>
         <div className={styles.container} ref={messagesContainerRef}>
             {messages.length === 0 ? (
                 <div className={styles.emptyState}>
@@ -831,7 +837,13 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                 )}
             </div>
         )}
-        <form className={`${styles.chat} ${hasPendingAudio ? styles.chatAudioPending : ''}`} onSubmit={sendMessage}>
+        <motion.form
+            className={`${styles.chat} ${hasPendingAudio ? styles.chatAudioPending : ''}`}
+            onSubmit={sendMessage}
+            initial={{ y: 32, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.42, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+        >
             <input
                 ref={fileInputRef}
                 type="file"
@@ -889,10 +901,17 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                 ref={message}
                 disabled={uploadingFile || isRecording || hasPendingAudio}
             />
-            <button className={styles.submit} type="submit" aria-label="إرسال" disabled={uploadingFile || isRecording}>
+            <motion.button
+                className={styles.submit}
+                type="submit"
+                aria-label="إرسال"
+                disabled={uploadingFile || isRecording}
+                whileHover={{ scale: uploadingFile || isRecording ? 1 : 1.06 }}
+                whileTap={{ scale: uploadingFile || isRecording ? 1 : 0.94 }}
+            >
                 <SendIcon size={20} />
-            </button>
-        </form>
+            </motion.button>
+        </motion.form>
         {previewMedia && (
             <div className={styles.mediaPreviewOverlay} onClick={() => setPreviewMedia(null)}>
                 <div className={styles.mediaPreviewContainer} onClick={(e) => e.stopPropagation()}>

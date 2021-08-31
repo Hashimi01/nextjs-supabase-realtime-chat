@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import { motion, AnimatePresence } from 'framer-motion'
 import styles from '../styles/Home.module.css'
 import sidebarStyles from '../styles/Sidebar.module.css'
 import Auth from '../components/Auth'
@@ -8,18 +9,22 @@ import Profile from '../components/Profile'
 
 import { useEffect, useRef, useState } from 'react'
 
+const tabTransition = {
+  duration: 0.26,
+  ease: [0.22, 1, 0.36, 1],
+}
+
 export default function Home({ currentUser, session, supabase }) {
   const [loggedIn, setLoggedIn] = useState(false)
-  const [tab, setTab] = useState('public') // 'public' | 'private' | 'profile'
-  const [sidebarOpen, setSidebarOpen] = useState(true) // Default open on desktop
+  const [tab, setTab] = useState('public')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isDesktop, setIsDesktop] = useState(true)
 
   const directMessagesRef = useRef(null)
 
-  useEffect(()=> {
-    setLoggedIn(!! session)
-    
-    // Check if desktop
+  useEffect(() => {
+    setLoggedIn(!!session)
+
     const checkDesktop = () => {
       setIsDesktop(window.innerWidth > 768)
     }
@@ -40,6 +45,9 @@ export default function Home({ currentUser, session, supabase }) {
     return name[0].toUpperCase()
   }
 
+  const mainMargin =
+    loggedIn && isDesktop && sidebarOpen ? 'var(--sidebar-w)' : '0'
+
   return (
     <div className={styles.container}>
       <Head>
@@ -50,42 +58,88 @@ export default function Home({ currentUser, session, supabase }) {
         />
       </Head>
 
-      <main className={styles.main} style={{ 
-        marginRight: loggedIn && isDesktop && sidebarOpen ? '280px' : '0', 
-        transition: 'margin-right 0.3s ease' 
-      }}>
-        {loggedIn? (
-          tab === 'profile' ? (
-            <Profile currentUser={currentUser} session={session} supabase={supabase} onBack={() => setTab('public')} />
-          ) : tab === 'public' ? (
-            <Chat currentUser = { currentUser } session = {session} supabase = { supabase } onOpenDirectMessages={handleOpenDirectMessages} />
+      <main
+        className={styles.main}
+        style={{
+          marginInlineEnd: mainMargin,
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {!loggedIn ? (
+            <motion.div
+              key="auth"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={tabTransition}
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Auth supabase={supabase} />
+            </motion.div>
           ) : (
-            <DirectMessages
-              ref={directMessagesRef}
-              currentUser = { currentUser }
-              session = {session}
-              supabase = { supabase }
-            />
-          )
-        ) : (
-          <Auth supabase = { supabase } />
-        )}
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={tabTransition}
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {tab === 'profile' ? (
+                <Profile
+                  currentUser={currentUser}
+                  session={session}
+                  supabase={supabase}
+                  onBack={() => setTab('public')}
+                />
+              ) : tab === 'public' ? (
+                <Chat
+                  currentUser={currentUser}
+                  session={session}
+                  supabase={supabase}
+                  onOpenDirectMessages={handleOpenDirectMessages}
+                />
+              ) : (
+                <DirectMessages
+                  ref={directMessagesRef}
+                  currentUser={currentUser}
+                  session={session}
+                  supabase={supabase}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
-      {/* Sidebar Navigation */}
       {loggedIn && (
         <>
-          <div className={`${sidebarStyles.sidebarOverlay} ${sidebarOpen ? sidebarStyles.open : ''}`} 
-               onClick={() => setSidebarOpen(false)} />
-          
-          <div className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''} ${!sidebarOpen && isDesktop ? sidebarStyles.closed : ''}`}>
+          <div
+            className={`${sidebarStyles.sidebarOverlay} ${sidebarOpen ? sidebarStyles.open : ''}`}
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div
+            className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''} ${!sidebarOpen && isDesktop ? sidebarStyles.closed : ''}`}
+          >
             <div className={sidebarStyles.sidebarHeader}>
-              <h2>القائمة</h2>
-              <p>اختر الصفحة المطلوبة</p>
+              <h2>التنقّل</h2>
+              <p>مساحة دردشة موحّدة وسريعة</p>
             </div>
 
             <div className={sidebarStyles.navItems}>
-              <div 
+              <div
                 className={`${sidebarStyles.navItem} ${tab === 'public' ? sidebarStyles.active : ''}`}
                 onClick={() => {
                   setTab('public')
@@ -96,18 +150,18 @@ export default function Home({ currentUser, session, supabase }) {
                 <div className={sidebarStyles.navItemText}>المحادثة العامة</div>
               </div>
 
-              <div 
+              <div
                 className={`${sidebarStyles.navItem} ${tab === 'private' ? sidebarStyles.active : ''}`}
                 onClick={() => {
                   setTab('private')
                   setSidebarOpen(false)
                 }}
               >
-                <div className={sidebarStyles.navItemIcon}>🔒</div>
-                <div className={sidebarStyles.navItemText}>المحادثات الخاصة</div>
+                <div className={sidebarStyles.navItemIcon}>✉️</div>
+                <div className={sidebarStyles.navItemText}>الرسائل الخاصة</div>
               </div>
 
-              <div 
+              <div
                 className={`${sidebarStyles.navItem} ${tab === 'profile' ? sidebarStyles.active : ''}`}
                 onClick={() => {
                   setTab('profile')
@@ -120,25 +174,23 @@ export default function Home({ currentUser, session, supabase }) {
             </div>
 
             <div className={sidebarStyles.userInfo}>
-              <div className={sidebarStyles.userAvatar}>
-                {getAvatarLetter()}
-              </div>
+              <div className={sidebarStyles.userAvatar}>{getAvatarLetter()}</div>
               <div className={sidebarStyles.userName}>
                 {currentUser?.username || 'بدون اسم'}
               </div>
-              <div className={sidebarStyles.userEmail}>
-                {session?.user?.email}
-              </div>
+              <div className={sidebarStyles.userEmail}>{session?.user?.email}</div>
             </div>
           </div>
 
-          {/* Mobile Toggle Button */}
-          <button 
+          <motion.button
+            type="button"
             className={sidebarStyles.sidebarToggle}
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            whileTap={{ scale: 0.94 }}
+            aria-label={sidebarOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
           >
             {sidebarOpen ? '✕' : '☰'}
-          </button>
+          </motion.button>
         </>
       )}
     </div>
