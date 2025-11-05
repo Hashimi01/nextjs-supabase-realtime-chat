@@ -2,11 +2,14 @@ import Head from 'next/head'
 import styles from '../styles/Home.module.css'
 import Auth from '../components/Auth'
 import Chat from '../components/Chat'
+import DirectMessages from '../components/DirectMessages'
+import Profile from '../components/Profile'
 
 import { useEffect, useState } from 'react'
 
 export default function Home({ currentUser, session, supabase }) {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [tab, setTab] = useState('public') // 'public' | 'private' | 'profile'
   useEffect(()=> {
     setLoggedIn(!! session)
   }, [session])
@@ -19,7 +22,24 @@ export default function Home({ currentUser, session, supabase }) {
       </Head>
 
       <main className={styles.main}>
-        {loggedIn? <Chat currentUser = { currentUser } session = {session} supabase = { supabase } />  : <Auth supabase = { supabase } />}
+        {loggedIn? (
+          tab === 'profile' ? (
+            <Profile currentUser={currentUser} session={session} supabase={supabase} onBack={() => setTab('public')} />
+          ) : tab === 'public' ? (
+            <Chat currentUser = { currentUser } session = {session} supabase = { supabase } />
+          ) : (
+            <DirectMessages currentUser = { currentUser } session = {session} supabase = { supabase } />
+          )
+        ) : (
+          <Auth supabase = { supabase } />
+        )}
+        {loggedIn && tab !== 'profile' && (
+          <div style={{ position:'fixed', top: 66, right: 10, zIndex: 1100, display:'flex', gap:8 }}>
+            <button onClick={() => setTab('public')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='public'?'#075e54':'#fff', color:tab==='public'?'#fff':'#075e54' }}>عام</button>
+            <button onClick={() => setTab('private')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='private'?'#075e54':'#fff', color:tab==='private'?'#fff':'#075e54' }}>خاص</button>
+            <button onClick={() => setTab('profile')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='profile'?'#075e54':'#fff', color:tab==='profile'?'#fff':'#075e54' }}>الملف الشخصي</button>
+          </div>
+        )}
       </main>
 
     </div>

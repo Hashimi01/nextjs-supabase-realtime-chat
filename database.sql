@@ -192,6 +192,160 @@ CREATE TRIGGER notify_message_insert
     EXECUTE FUNCTION public.notify_new_message();
 
 -- ============================================
+-- Direct Messages (Private Chats)
+-- ============================================
+
+-- Threads table (each pair of users has a single thread)
+CREATE TABLE IF NOT EXISTS public.direct_message_thread (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_a UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_b UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
+-- Ensure uniqueness for pair regardless of order
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_dm_thread_unique_pair'
+    ) THEN
+        EXECUTE 'CREATE UNIQUE INDEX idx_dm_thread_unique_pair ON public.direct_message_thread ((LEAST(user_a, user_b)), (GREATEST(user_a, user_b)))';
+    END IF;
+END $$;
+
+-- Messages table for threads
+CREATE TABLE IF NOT EXISTS public.direct_message (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    thread_id UUID NOT NULL REFERENCES public.direct_message_thread(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_direct_message_thread ON public.direct_message(thread_id);
+CREATE INDEX IF NOT EXISTS idx_direct_message_created_at ON public.direct_message(created_at);
+
+-- RLS for threads/messages
+ALTER TABLE public.direct_message_thread ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direct_message ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "dm_thread_select" ON public.direct_message_thread;
+DROP POLICY IF EXISTS "dm_thread_insert" ON public.direct_message_thread;
+DROP POLICY IF EXISTS "dm_select" ON public.direct_message;
+DROP POLICY IF EXISTS "dm_insert" ON public.direct_message;
+
+-- A user can see threads where they are participant
+CREATE POLICY "dm_thread_select"
+    ON public.direct_message_thread
+    FOR SELECT
+    USING (auth.uid() = user_a OR auth.uid() = user_b);
+
+-- Allow creating thread by any authenticated user (will be normalized by function)
+CREATE POLICY "dm_thread_insert"
+    ON public.direct_message_thread
+    FOR INSERT
+    WITH CHECK (true);
+
+-- A user can read messages of threads they belong to
+CREATE POLICY "dm_select"
+    ON public.direct_message
+    FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.direct_message_thread t
+        WHERE t.id = thread_id AND (auth.uid() = t.user_a OR auth.uid() = t.user_b)
+    ));
+
+-- A user can insert messages only in their threads and only as themselves
+CREATE POLICY "dm_insert"
+    ON public.direct_message
+    FOR INSERT
+    WITH CHECK (
+        sender_id = auth.uid() AND EXISTS (
+            SELECT 1 FROM public.direct_message_thread t
+            WHERE t.id = thread_id AND (auth.uid() = t.user_a OR auth.uid() = t.user_b)
+        )
+    );
+
+-- Helper function to ensure a thread exists between current user and partner
+CREATE OR REPLACE FUNCTION public.ensure_dm_thread(partner_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    me UUID := auth.uid();
+    a UUID;
+    b UUID;
+    existing UUID;
+BEGIN
+    IF me IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    -- Normalize order (least/greatest)
+    a := LEAST(me, partner_id);
+    b := GREATEST(me, partner_id);
+
+    SELECT id INTO existing
+    FROM public.direct_message_thread
+    WHERE LEAST(user_a, user_b) = a AND GREATEST(user_a, user_b) = b
+    LIMIT 1;
+
+    IF existing IS NULL THEN
+        INSERT INTO public.direct_message_thread(user_a, user_b)
+        VALUES (a, b)
+        RETURNING id INTO existing;
+    END IF;
+    RETURN existing;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.ensure_dm_thread(UUID) TO authenticated;
+
+-- Function to get threads with last message info for ordering (simplified version)
+CREATE OR REPLACE FUNCTION public.get_threads_with_last_message(user_id UUID)
+RETURNS TABLE (
+    thread_id UUID,
+    other_user_id UUID,
+    last_message_content TEXT,
+    last_message_time TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        t.id as thread_id,
+        CASE WHEN t.user_a = user_id THEN t.user_b ELSE t.user_a END as other_user_id,
+        dm.content as last_message_content,
+        COALESCE(dm.created_at, t.created_at) as last_message_time
+    FROM public.direct_message_thread t
+    LEFT JOIN LATERAL (
+        SELECT content, created_at
+        FROM public.direct_message
+        WHERE thread_id = t.id
+        ORDER BY created_at DESC
+        LIMIT 1
+    ) dm ON true
+    WHERE t.user_a = user_id OR t.user_b = user_id
+    ORDER BY COALESCE(dm.created_at, t.created_at) DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_threads_with_last_message(UUID) TO authenticated;
+
+-- Realtime replication for DM tables
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'direct_message'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_message;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'direct_message_thread'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_message_thread;
+    END IF;
+END $$;
+
+-- ============================================
 -- Ensure tables are properly configured for realtime
 -- ============================================
 -- Make sure the tables have the right permissions
