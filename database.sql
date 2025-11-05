@@ -27,6 +27,20 @@ CREATE TABLE IF NOT EXISTS public.message (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
 
+-- Add file columns if they don't exist (for existing tables)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'message' AND column_name = 'file_url') THEN
+        ALTER TABLE public.message ADD COLUMN file_url TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'message' AND column_name = 'file_type') THEN
+        ALTER TABLE public.message ADD COLUMN file_type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'message' AND column_name = 'file_name') THEN
+        ALTER TABLE public.message ADD COLUMN file_name TEXT;
+    END IF;
+END $$;
+
 -- ============================================
 -- Indexes for better performance
 -- ============================================
@@ -222,6 +236,20 @@ CREATE TABLE IF NOT EXISTS public.direct_message (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
 
+-- Add file columns if they don't exist (for existing tables)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'file_url') THEN
+        ALTER TABLE public.direct_message ADD COLUMN file_url TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'file_type') THEN
+        ALTER TABLE public.direct_message ADD COLUMN file_type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'file_name') THEN
+        ALTER TABLE public.direct_message ADD COLUMN file_name TEXT;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_direct_message_thread ON public.direct_message(thread_id);
 CREATE INDEX IF NOT EXISTS idx_direct_message_created_at ON public.direct_message(created_at);
 
@@ -301,7 +329,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.ensure_dm_thread(UUID) TO authenticated;
 
 -- Function to get threads with last message info for ordering (simplified version)
-CREATE OR REPLACE FUNCTION public.get_threads_with_last_message(user_id UUID)
+-- Drop existing function if it exists with different signature
+DROP FUNCTION IF EXISTS public.get_threads_with_last_message(UUID);
+
+CREATE FUNCTION public.get_threads_with_last_message(user_id UUID)
 RETURNS TABLE (
     thread_id UUID,
     other_user_id UUID,
@@ -344,6 +375,42 @@ BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_message_thread;
     END IF;
 END $$;
+
+-- ============================================
+-- Storage Bucket for Chat Files
+-- ============================================
+-- Note: This must be run in Supabase Dashboard SQL Editor
+-- or via Supabase CLI/Migrations
+
+-- Create storage bucket for chat files
+-- INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+-- VALUES (
+--     'chat-files',
+--     'chat-files',
+--     true,
+--     10485760, -- 10MB limit
+--     ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+-- )
+-- ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for chat-files bucket
+-- Policy: Users can upload files
+-- CREATE POLICY "Users can upload files"
+--     ON storage.objects FOR INSERT
+--     TO authenticated
+--     WITH CHECK (bucket_id = 'chat-files' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Policy: Users can view all files
+-- CREATE POLICY "Anyone can view files"
+--     ON storage.objects FOR SELECT
+--     TO public
+--     USING (bucket_id = 'chat-files');
+
+-- Policy: Users can delete their own files
+-- CREATE POLICY "Users can delete their own files"
+--     ON storage.objects FOR DELETE
+--     TO authenticated
+--     USING (bucket_id = 'chat-files' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ============================================
 -- Ensure tables are properly configured for realtime

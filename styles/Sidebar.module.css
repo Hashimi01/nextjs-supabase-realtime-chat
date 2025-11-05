@@ -12,6 +12,18 @@
   flex-direction: column;
   z-index: 1000;
   box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+/* Desktop: always visible by default */
+@media (min-width: 769px) {
+  .sidebar {
+    transform: translateX(0);
+  }
+  
+  .sidebar.closed {
+    transform: translateX(100%);
+  }
 }
 
 .sidebarHeader {
@@ -114,6 +126,33 @@
 
 .sidebarToggle {
   display: none;
+}
+
+/* Desktop toggle button */
+@media (min-width: 769px) {
+  .sidebarToggle {
+    display: flex;
+    position: fixed;
+    top: 16px;
+    right: 296px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #075e54;
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    align-items: center;
+    justify-content: center;
+    transition: right 0.3s ease;
+  }
+  
+  .sidebar.closed ~ .sidebarToggle {
+    right: 16px;
+  }
 }
 
 @media (max-width: 768px) {

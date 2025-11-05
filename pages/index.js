@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 export default function Home({ currentUser, session, supabase }) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [tab, setTab] = useState('public') // 'public' | 'private' | 'profile'
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true) // Default open on desktop
   const [isDesktop, setIsDesktop] = useState(true)
   
   useEffect(()=> {
@@ -40,7 +40,7 @@ export default function Home({ currentUser, session, supabase }) {
       </Head>
 
       <main className={styles.main} style={{ 
-        marginRight: loggedIn && isDesktop ? '280px' : '0', 
+        marginRight: loggedIn && isDesktop && sidebarOpen ? '280px' : '0', 
         transition: 'margin-right 0.3s ease' 
       }}>
         {loggedIn? (
@@ -62,7 +62,7 @@ export default function Home({ currentUser, session, supabase }) {
           <div className={`${sidebarStyles.sidebarOverlay} ${sidebarOpen ? sidebarStyles.open : ''}`} 
                onClick={() => setSidebarOpen(false)} />
           
-          <div className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''}`}>
+          <div className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''} ${!sidebarOpen && isDesktop ? sidebarStyles.closed : ''}`}>
             <div className={sidebarStyles.sidebarHeader}>
               <h2>القائمة</h2>
               <p>اختر الصفحة المطلوبة</p>
