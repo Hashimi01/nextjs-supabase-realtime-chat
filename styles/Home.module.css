@@ -6,6 +6,7 @@
   justify-content: flex-start;
   align-items: stretch;
   height: 100vh;
+  position: relative;
 }
 
 .main {
@@ -16,6 +17,7 @@
   justify-content: flex-start;
   align-items: stretch;
   width: 100%;
+  transition: margin-right 0.3s ease;
 }
 
 .footer {

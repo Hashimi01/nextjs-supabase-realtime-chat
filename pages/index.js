@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
+import sidebarStyles from '../styles/Sidebar.module.css'
 import Auth from '../components/Auth'
 import Chat from '../components/Chat'
 import DirectMessages from '../components/DirectMessages'
@@ -10,9 +11,26 @@ import { useEffect, useState } from 'react'
 export default function Home({ currentUser, session, supabase }) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [tab, setTab] = useState('public') // 'public' | 'private' | 'profile'
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(true)
+  
   useEffect(()=> {
     setLoggedIn(!! session)
+    
+    // Check if desktop
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth > 768)
+    }
+    checkDesktop()
+    window.addEventListener('resize', checkDesktop)
+    return () => window.removeEventListener('resize', checkDesktop)
   }, [session])
+
+  const getAvatarLetter = () => {
+    const name = currentUser?.username || session?.user?.email || 'U'
+    return name[0].toUpperCase()
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -21,7 +39,10 @@ export default function Home({ currentUser, session, supabase }) {
         <link rel="icon" href="/favicon-32x32.png" />
       </Head>
 
-      <main className={styles.main}>
+      <main className={styles.main} style={{ 
+        marginRight: loggedIn && isDesktop ? '280px' : '0', 
+        transition: 'margin-right 0.3s ease' 
+      }}>
         {loggedIn? (
           tab === 'profile' ? (
             <Profile currentUser={currentUser} session={session} supabase={supabase} onBack={() => setTab('public')} />
@@ -33,15 +54,77 @@ export default function Home({ currentUser, session, supabase }) {
         ) : (
           <Auth supabase = { supabase } />
         )}
-        {loggedIn && tab !== 'profile' && (
-          <div style={{ position:'fixed', top: 66, right: 10, zIndex: 1100, display:'flex', gap:8 }}>
-            <button onClick={() => setTab('public')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='public'?'#075e54':'#fff', color:tab==='public'?'#fff':'#075e54' }}>عام</button>
-            <button onClick={() => setTab('private')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='private'?'#075e54':'#fff', color:tab==='private'?'#fff':'#075e54' }}>خاص</button>
-            <button onClick={() => setTab('profile')} style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ccc', background: tab==='profile'?'#075e54':'#fff', color:tab==='profile'?'#fff':'#075e54' }}>الملف الشخصي</button>
-          </div>
-        )}
       </main>
 
+      {/* Sidebar Navigation */}
+      {loggedIn && (
+        <>
+          <div className={`${sidebarStyles.sidebarOverlay} ${sidebarOpen ? sidebarStyles.open : ''}`} 
+               onClick={() => setSidebarOpen(false)} />
+          
+          <div className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''}`}>
+            <div className={sidebarStyles.sidebarHeader}>
+              <h2>القائمة</h2>
+              <p>اختر الصفحة المطلوبة</p>
+            </div>
+
+            <div className={sidebarStyles.navItems}>
+              <div 
+                className={`${sidebarStyles.navItem} ${tab === 'public' ? sidebarStyles.active : ''}`}
+                onClick={() => {
+                  setTab('public')
+                  setSidebarOpen(false)
+                }}
+              >
+                <div className={sidebarStyles.navItemIcon}>💬</div>
+                <div className={sidebarStyles.navItemText}>المحادثة العامة</div>
+              </div>
+
+              <div 
+                className={`${sidebarStyles.navItem} ${tab === 'private' ? sidebarStyles.active : ''}`}
+                onClick={() => {
+                  setTab('private')
+                  setSidebarOpen(false)
+                }}
+              >
+                <div className={sidebarStyles.navItemIcon}>🔒</div>
+                <div className={sidebarStyles.navItemText}>المحادثات الخاصة</div>
+              </div>
+
+              <div 
+                className={`${sidebarStyles.navItem} ${tab === 'profile' ? sidebarStyles.active : ''}`}
+                onClick={() => {
+                  setTab('profile')
+                  setSidebarOpen(false)
+                }}
+              >
+                <div className={sidebarStyles.navItemIcon}>👤</div>
+                <div className={sidebarStyles.navItemText}>الملف الشخصي</div>
+              </div>
+            </div>
+
+            <div className={sidebarStyles.userInfo}>
+              <div className={sidebarStyles.userAvatar}>
+                {getAvatarLetter()}
+              </div>
+              <div className={sidebarStyles.userName}>
+                {currentUser?.username || 'بدون اسم'}
+              </div>
+              <div className={sidebarStyles.userEmail}>
+                {session?.user?.email}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Toggle Button */}
+          <button 
+            className={sidebarStyles.sidebarToggle}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+        </>
+      )}
     </div>
   )
 }
