@@ -52,3 +52,10 @@ export const WaveIcon = createIcon(
   </>
 )
 
+export const SendIcon = createIcon(
+  <>
+    <path d="M5 11.5 20 4l-7.5 15-1.5-6z" />
+    <path d="m5 11.5 6.5 2" />
+  </>
+)
+

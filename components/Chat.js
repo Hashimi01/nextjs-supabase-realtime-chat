@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import styles from '../styles/Chat.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
-import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon } from './Icons'
+import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon, SendIcon } from './Icons'
 
 
 const Chat = ({ currentUser, session, supabase }) => {
@@ -666,9 +666,7 @@ const Chat = ({ currentUser, session, supabase }) => {
                 disabled={uploadingFile || isRecording}
             />
             <button className={styles.submit} type="submit" aria-label="إرسال" disabled={uploadingFile || isRecording}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1.946 9.315c-.284-.1-.478-.415-.478-.796 0-.38.194-.695.478-.796l18.5-6.5c.297-.104.64-.005.82.248.18.252.17.59-.01.838L9.5 12l11.336 9.5c.18.248.19.586.01.838-.18.253-.523.352-.82.248l-18.5-6.5z" fill="currentColor"/>
-                </svg>
+                <SendIcon size={20} />
             </button>
         </form>
     </>
