@@ -15,10 +15,14 @@ const Auth = ({ supabase }) => {
 
         try {
             if (isSignUp) {
+                // تحديد رابط إعادة التوجيه بعد التحقق من البريد
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : undefined)
+
                 // تسجيل حساب جديد
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: siteUrl ? { emailRedirectTo: siteUrl } : undefined
                 })
 
                 if (error) throw error

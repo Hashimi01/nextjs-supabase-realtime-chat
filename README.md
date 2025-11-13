@@ -45,6 +45,7 @@ $ npm install @supabase/supabase-js
 ```
 NEXT_PUBLIC_SUPABASE_URL= < YOUR SUPABASE URL >
 NEXT_PUBLIC_SUPABASE_API_KEY= < YOUR SUPABASE ANON KEY >
+NEXT_PUBLIC_SITE_URL= < YOUR PUBLIC APP URL >
 ```
 
 - [Install ESLint Plugin](https://reactjs.org/docs/hooks-rules.html):
