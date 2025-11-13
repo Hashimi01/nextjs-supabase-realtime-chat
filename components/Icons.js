@@ -46,6 +46,17 @@ export const CheckIcon = createIcon(
   <path d="m6 12 4 4 8-8" />
 )
 
+export const SingleTickIcon = createIcon(
+  <path d="M5 12.5 9.2 16l9-9" />
+)
+
+export const DoubleTickIcon = createIcon(
+  <>
+    <path d="M3.5 13 6.8 16.3 9.8 13.3" />
+    <path d="M8.2 12.8 11.5 16.1 18 9.6" />
+  </>
+)
+
 export const WaveIcon = createIcon(
   <>
     <path d="M8.5 8.5c.5-1 1-2.5 2.5-2s1.5 2 1 3 0 2 1 2 1.5-1 2-2 1.5-2 2.5-1-1 5-1.5 6-1.5 2-3.5 2-3.5-1-4.5-2.5-1.5-3-1.5-4 0-1.5 1-1.5 1.5.5 1.5 1.5-.5 2.5 0 3.5" />

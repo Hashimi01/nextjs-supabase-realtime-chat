@@ -246,7 +246,9 @@ CREATE TABLE IF NOT EXISTS public.direct_message (
     thread_id UUID NOT NULL REFERENCES public.direct_message_thread(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+    delivered_at TIMESTAMP WITH TIME ZONE,
+    read_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Add file columns if they don't exist (for existing tables)
@@ -260,6 +262,27 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'file_name') THEN
         ALTER TABLE public.direct_message ADD COLUMN file_name TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'delivered_at') THEN
+        ALTER TABLE public.direct_message ADD COLUMN delivered_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'read_at') THEN
+        ALTER TABLE public.direct_message ADD COLUMN read_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'direct_message' AND column_name = 'delivered_at') THEN
+        BEGIN
+            EXECUTE 'ALTER TABLE public.direct_message ALTER COLUMN delivered_at DROP DEFAULT';
+        EXCEPTION
+            WHEN undefined_column THEN
+                NULL;
+        END;
+        UPDATE public.direct_message
+        SET delivered_at = NULL
+        WHERE delivered_at IS NOT NULL AND read_at IS NULL;
     END IF;
 END $$;
 
@@ -275,6 +298,7 @@ DROP POLICY IF EXISTS "dm_thread_select" ON public.direct_message_thread;
 DROP POLICY IF EXISTS "dm_thread_insert" ON public.direct_message_thread;
 DROP POLICY IF EXISTS "dm_select" ON public.direct_message;
 DROP POLICY IF EXISTS "dm_insert" ON public.direct_message;
+DROP POLICY IF EXISTS "dm_update_status" ON public.direct_message;
 
 -- A user can see threads where they are participant
 CREATE POLICY "dm_thread_select"
@@ -307,6 +331,19 @@ CREATE POLICY "dm_insert"
             WHERE t.id = thread_id AND (auth.uid() = t.user_a OR auth.uid() = t.user_b)
         )
     );
+
+-- A user can update their own message status
+CREATE POLICY "dm_update_status"
+    ON public.direct_message
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.direct_message_thread t
+        WHERE t.id = thread_id AND (auth.uid() = t.user_a OR auth.uid() = t.user_b)
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.direct_message_thread t
+        WHERE t.id = thread_id AND (auth.uid() = t.user_a OR auth.uid() = t.user_b)
+    ));
 
 -- Helper function to ensure a thread exists between current user and partner
 CREATE OR REPLACE FUNCTION public.ensure_dm_thread(partner_id UUID)

@@ -256,7 +256,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
+  gap: 6px;
   margin-top: 2px;
   font-size: 11px;
   color: rgba(0, 0, 0, 0.45);
@@ -271,8 +271,22 @@
 }
 
 .messageTickIcon {
+  display: inline-flex;
+  align-items: center;
   color: #8696a0;
   margin-left: 2px;
+}
+
+.messageTickSent {
+  color: #8696a0;
+}
+
+.messageTickDelivered {
+  color: #8696a0;
+}
+
+.messageTickRead {
+  color: #34b7f1;
 }
 
 .ownMessage .messageTickIcon {

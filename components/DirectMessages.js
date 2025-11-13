@@ -4,7 +4,7 @@ import dmStyles from '../styles/DirectMessages.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
 import PendingAudioPreview from './PendingAudioPreview'
-import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, SendIcon } from './Icons'
+import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, SingleTickIcon, DoubleTickIcon, SendIcon } from './Icons'
 
 const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
   if (!session?.user?.id) return null
@@ -22,6 +22,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
   const [pendingFiles, setPendingFiles] = useState([])
   const [isRecording, setIsRecording] = useState(false)
   const [previewMedia, setPreviewMedia] = useState(null)
+  const [isDocumentVisible, setIsDocumentVisible] = useState(true)
 
   const inputRef = useRef('')
   const fileInputRef = useRef(null)
@@ -30,6 +31,8 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingCancelledRef = useRef(false)
+  const deliveredMarkedRef = useRef(new Set())
+  const readMarkedRef = useRef(new Set())
 
   const myUserId = session.user.id
 
@@ -72,6 +75,21 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
   useEffect(() => { scrollToBottom() }, [dmMessages])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    const handleVisibility = () => {
+      setIsDocumentVisible(!document.hidden)
+    }
+    handleVisibility()
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
+  useEffect(() => {
+    deliveredMarkedRef.current = new Set()
+    readMarkedRef.current = new Set()
+  }, [currentThread?.id])
 
   // Load my threads with last message info
   useEffect(() => {
@@ -272,11 +290,91 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
           return [...cleaned, payload.new]
         })
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'direct_message', filter: `thread_id=eq.${currentThread.id}`
+      }, (payload) => {
+        if (!payload?.new?.id) return
+        setDmMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m))
+      })
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
 
     channelRef.current = ch
     return () => { if (ch) supabase.removeChannel(ch) }
   }, [supabase, currentThread])
+
+  useEffect(() => {
+    if (!currentThread?.id || dmMessages.length === 0) return
+
+    const run = async () => {
+      const incoming = dmMessages.filter(m => m.sender_id !== myUserId && !!m.id)
+
+      const toDeliver = incoming.filter(m => !m.delivered_at && !deliveredMarkedRef.current.has(m.id))
+      if (toDeliver.length) {
+        const timestamp = new Date().toISOString()
+        const ids = toDeliver.map(m => m.id)
+        ids.forEach(id => deliveredMarkedRef.current.add(id))
+        setDmMessages(prev => prev.map(m => ids.includes(m.id) ? { ...m, delivered_at: timestamp } : m))
+        try {
+          await supabase
+            .from('direct_message')
+            .update({ delivered_at: timestamp })
+            .in('id', ids)
+        } catch (err) {
+          console.error('Error marking delivered messages:', err)
+        }
+      }
+
+      const canMarkRead = isDocumentVisible
+      if (canMarkRead) {
+        const toRead = incoming.filter(m => !m.read_at && !readMarkedRef.current.has(m.id))
+        if (toRead.length) {
+          const timestamp = new Date().toISOString()
+          const ids = toRead.map(m => m.id)
+          ids.forEach(id => readMarkedRef.current.add(id))
+          setDmMessages(prev => prev.map(m => ids.includes(m.id) ? { ...m, read_at: timestamp, delivered_at: m.delivered_at || timestamp } : m))
+          try {
+            await supabase
+              .from('direct_message')
+              .update({ read_at: timestamp, delivered_at: timestamp })
+              .in('id', ids)
+          } catch (err) {
+            console.error('Error marking read messages:', err)
+          }
+        }
+      }
+    }
+
+    run()
+  }, [dmMessages, currentThread?.id, myUserId, supabase, isDocumentVisible])
+
+  useEffect(() => {
+    if (!currentThread?.id || dmMessages.length === 0) return
+    const lastMessage = dmMessages[dmMessages.length - 1]
+    const preview = getMessagePreview(lastMessage)
+    const lastMessageTime = lastMessage?.created_at || new Date().toISOString()
+
+    setThreadsWithLastMessage(prev => {
+      const idx = prev.findIndex(t => t.id === currentThread.id)
+      if (idx === -1) return prev
+      const updatedThread = {
+        ...prev[idx],
+        lastMessage: preview,
+        lastMessageTime
+      }
+      const updatedList = [...prev]
+      updatedList.splice(idx, 1)
+      return [updatedThread, ...updatedList]
+    })
+
+    setThreads(prev => {
+      const idx = prev.findIndex(t => t.id === currentThread.id)
+      if (idx === -1) return prev
+      const updated = [...prev]
+      const [thread] = updated.splice(idx, 1)
+      updated.unshift(thread)
+      return updated
+    })
+  }, [dmMessages, currentThread?.id])
 
   const loadAudioDuration = (url) => new Promise((resolve) => {
     const audio = document.createElement('audio')
@@ -514,6 +612,8 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
         file_type: fileInfo?.file_type || null,
         file_name: fileInfo?.file_name || null,
         created_at: new Date().toISOString(),
+        delivered_at: null,
+        read_at: null,
         uploading: !!fileInfo 
       }
       setDmMessages(prev => [...prev, temp])
@@ -586,7 +686,10 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
           file_type: entry.type || null,
           file_name: entry.name || entry.file.name,
           created_at: new Date().toISOString(),
-          uploading: true
+          delivered_at: null,
+          read_at: null,
+          uploading: true,
+          status: 'pending'
         }
         setDmMessages(prev => [...prev, optimistic])
 
@@ -631,6 +734,22 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     return name[0].toUpperCase()
   }
 
+  const getMessagePreview = (message) => {
+    if (!message) return ''
+    if (message.file_type?.startsWith('audio/')) return '🎤 مقطع صوتي'
+    if (message.file_type?.startsWith('image/')) return message.content || '🖼️ صورة'
+    if (message.file_url && !message.content) return message.file_name || '📎 ملف'
+    return message.content || ''
+  }
+
+  const getMessageStatus = (message) => {
+    if (!message) return 'sent'
+    if (message.uploading) return 'uploading'
+    if (message.read_at) return 'read'
+    if (message.delivered_at) return 'delivered'
+    return 'sent'
+  }
+
   const formatTime = (timestamp) => {
     if (!timestamp) return ''
     const date = new Date(timestamp)
@@ -669,6 +788,62 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`dm-inbox:${myUserId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'direct_message'
+      }, (payload) => {
+        const message = payload.new
+        if (!message?.thread_id) return
+
+        const threadId = message.thread_id
+        const preview = getMessagePreview(message)
+        const lastMessageTime = message.created_at
+
+        setThreads(prev => {
+          const idx = prev.findIndex(t => t.id === threadId)
+          if (idx === -1) return prev
+          const updated = [...prev]
+          const [thread] = updated.splice(idx, 1)
+          updated.unshift(thread)
+          return updated
+        })
+
+        setThreadsWithLastMessage(prev => {
+          const existingIndex = prev.findIndex(t => t.id === threadId)
+          if (existingIndex === -1) {
+            const baseThread = threads.find(t => t.id === threadId)
+            if (!baseThread) return prev
+            const otherUserId = baseThread.user_a === myUserId ? baseThread.user_b : baseThread.user_a
+            const newThread = {
+              ...baseThread,
+              lastMessage: preview,
+              lastMessageTime,
+              otherUserId
+            }
+            return [newThread, ...prev]
+          }
+
+          const updatedThread = {
+            ...prev[existingIndex],
+            lastMessage: preview,
+            lastMessageTime
+          }
+          const updatedList = [...prev]
+          updatedList.splice(existingIndex, 1)
+          return [updatedThread, ...updatedList]
+        })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, myUserId, threads])
 
   return (
     <div className={dmStyles.dmContainer}>
@@ -796,6 +971,17 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                                 (new Date(nextMessage.created_at) - new Date(m.created_at)) > 300000
                 const fileUrl = m.previewUrl || m.file_url
                 const fileType = m.file_type
+                const status = getMessageStatus(m)
+
+                const statusClass =
+                  status === 'read' ? styles.messageTickRead :
+                  status === 'delivered' ? styles.messageTickDelivered :
+                  styles.messageTickSent
+
+                const statusIcon =
+                  status === 'read' ? <DoubleTickIcon size={16} /> :
+                  status === 'delivered' ? <DoubleTickIcon size={16} /> :
+                  <SingleTickIcon size={16} />
 
                 return (
                   <div key={m.id} className={`${styles.messageWrapper} ${isOwn(m) ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}>
@@ -852,7 +1038,11 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                       {showTime && (
                         <div className={styles.messageTime}>
                           {formatTime(m.created_at)}
-                          {isOwn(m) && <CheckIcon size={16} className={styles.messageTickIcon} />}
+                          {isOwn(m) && status !== 'uploading' && (
+                            <span className={`${styles.messageTickIcon} ${statusClass}`}>
+                              {statusIcon}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
