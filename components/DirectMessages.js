@@ -18,10 +18,8 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   const [usersMap, setUsersMap] = useState({})
   const [showSidebar, setShowSidebar] = useState(true)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [selectedFile, setSelectedFile] = useState(null)
+  const [pendingFiles, setPendingFiles] = useState([])
   const [isRecording, setIsRecording] = useState(false)
-  const [audioBlob, setAudioBlob] = useState(null)
-  const [audioUrl, setAudioUrl] = useState(null)
 
   const inputRef = useRef('')
   const fileInputRef = useRef(null)
@@ -29,6 +27,7 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   const channelRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
+  const recordingCancelledRef = useRef(false)
 
   const myUserId = session.user.id
 
@@ -149,6 +148,8 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       .select('*')
       .eq('id', threadId)
       .single()
+    clearPendingFiles()
+    if (inputRef.current) inputRef.current.value = ''
     setCurrentThread(thread)
   }
 
@@ -248,16 +249,69 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   }
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    
-    if (file.size > 10 * 1024 * 1024) {
-      alert('❌ حجم الملف كبير جداً. الحد الأقصى 10 MB')
-      return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+
+    const newEntries = []
+
+    files.forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`❌ الملف "${file.name}" يتجاوز الحد الأقصى 10 MB`)
+        return
+      }
+
+      const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      let previewUrl = null
+      if (file.type?.startsWith('image/') || file.type?.startsWith('audio/')) {
+        try {
+          previewUrl = URL.createObjectURL(file)
+        } catch (err) {
+          console.warn('Unable to create preview url', err)
+        }
+      }
+
+      newEntries.push({
+        id,
+        file,
+        name: file.name,
+        type: file.type,
+        previewUrl,
+        caption: ''
+      })
+    })
+
+    if (newEntries.length > 0) {
+      setPendingFiles(prev => [...prev, ...newEntries])
     }
-    
-    setSelectedFile(file)
+
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removePendingFile = (id) => {
+    setPendingFiles(prev => {
+      const target = prev.find(file => file.id === id)
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl)
+      }
+      return prev.filter(file => file.id !== id)
+    })
+  }
+
+  const clearPendingFiles = () => {
+    setPendingFiles(prev => {
+      prev.forEach(file => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl)
+      })
+      return []
+    })
+  }
+
+  const updatePendingFileCaption = (id, value) => {
+    setPendingFiles(prev =>
+      prev.map(file =>
+        file.id === id ? { ...file, caption: value.slice(0, 200) } : file
+      )
+    )
   }
 
   const startRecording = async () => {
@@ -266,6 +320,7 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
+      recordingCancelledRef.current = false
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -274,11 +329,28 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       }
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        const url = URL.createObjectURL(audioBlob)
-        setAudioBlob(audioBlob)
-        setAudioUrl(url)
+        const cancelled = recordingCancelledRef.current
+        recordingCancelledRef.current = false
+        const chunks = [...audioChunksRef.current]
+        audioChunksRef.current = []
         stream.getTracks().forEach(track => track.stop())
+
+        if (cancelled || chunks.length === 0) return
+
+        const audioFile = new File(chunks, `audio_${Date.now()}.webm`, { type: 'audio/webm' })
+        const audioPreview = URL.createObjectURL(audioFile)
+
+        setPendingFiles(prev => [
+          ...prev,
+          {
+            id: `local-audio-${Date.now()}`,
+            file: audioFile,
+            name: audioFile.name,
+            type: audioFile.type,
+            previewUrl: audioPreview,
+            caption: ''
+          }
+        ])
       }
 
       mediaRecorder.start()
@@ -298,14 +370,10 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
 
   const cancelRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      recordingCancelledRef.current = true
       mediaRecorderRef.current.stop()
       setIsRecording(false)
     }
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl)
-    }
-    setAudioBlob(null)
-    setAudioUrl(null)
     audioChunksRef.current = []
   }
 
@@ -375,77 +443,64 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   const send = async (e) => {
     e.preventDefault()
     if (!currentThread?.id) return
-    const content = inputRef.current.value.trim()
-    let fileToSend = selectedFile
-    let fileInfo = null
 
-    // Handle audio file
-    if (audioBlob && !selectedFile) {
-      const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' })
-      fileToSend = audioFile
+    const content = inputRef.current.value.trim()
+    const pending = pendingFiles
+    const hasAttachments = pending.length > 0
+
+    if (!content && !hasAttachments) return
+
+    const hadPendingAudio = pending.some(file => file.type?.startsWith('audio/'))
+
+    if (!hasAttachments) {
+      await sendMessageWithFile(content)
+      if (inputRef.current) inputRef.current.value = ''
+      return
     }
 
-    if (!content && !fileToSend) return
+    setUploadingFile(true)
 
-    // Upload file if exists
-    if (fileToSend) {
-      const tempId = `temp-${Date.now()}`
-      const isAudio = fileToSend.type?.startsWith('audio/') || fileToSend.type === 'audio/webm'
-      let previewUrl = null
-      if (audioUrl && isAudio) {
-        previewUrl = audioUrl
-      } else if (fileToSend.type?.startsWith('image/')) {
-        previewUrl = URL.createObjectURL(fileToSend)
+    try {
+      for (const entry of pending) {
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const previewUrl = entry.previewUrl || (entry.type?.startsWith('image/') ? URL.createObjectURL(entry.file) : null)
+
+        const optimistic = {
+          id: tempId,
+          content: entry.caption || '',
+          sender_id: myUserId,
+          thread_id: currentThread.id,
+          file_url: previewUrl || null,
+          previewUrl: previewUrl || null,
+          file_type: entry.type || null,
+          file_name: entry.name || entry.file.name,
+          created_at: new Date().toISOString(),
+          uploading: true
+        }
+        setDmMessages(prev => [...prev, optimistic])
+
+        const fileInfo = await uploadFile(entry.file)
+
+        if (fileInfo) {
+          const result = await sendMessageWithFile(entry.caption || '', fileInfo, tempId)
+          if (result && previewUrl && previewUrl !== result.file_url) {
+            URL.revokeObjectURL(previewUrl)
+          }
+        } else {
+          setDmMessages(prev => prev.filter(m => m.id !== tempId))
+          alert(`❌ فشل رفع الملف "${entry.name}". يرجى المحاولة مرة أخرى.`)
+        }
       }
 
-      const optimistic = {
-        id: tempId,
-        content: content || '',
-        sender_id: myUserId,
-        thread_id: currentThread.id,
-        file_url: previewUrl || null,
-        previewUrl: previewUrl || null,
-        file_type: fileToSend.type || (isAudio ? 'audio/webm' : null),
-        file_name: fileToSend.name || (isAudio ? `audio_${Date.now()}.webm` : null),
-        created_at: new Date().toISOString(),
-        uploading: true
-      }
-      setDmMessages(prev => [...prev, optimistic])
-      scrollToBottom()
-
-      const originalFile = fileToSend
-      const hadSelectedFile = !!selectedFile
-      if (hadSelectedFile) {
-        setSelectedFile(null)
+      if (!hadPendingAudio && content) {
+        await sendMessageWithFile(content)
       }
 
-      setUploadingFile(true)
-      fileInfo = await uploadFile(fileToSend)
+      if (inputRef.current) inputRef.current.value = ''
+      clearPendingFiles()
+    } finally {
       setUploadingFile(false)
-      
-      if (fileInfo) {
-        const result = await sendMessageWithFile(content || '', fileInfo, tempId)
-        if (result && previewUrl && previewUrl !== audioUrl) {
-          URL.revokeObjectURL(previewUrl)
-        }
-        setSelectedFile(null)
-        if (audioUrl) {
-          URL.revokeObjectURL(audioUrl)
-        }
-        setAudioBlob(null)
-        setAudioUrl(null)
-        audioChunksRef.current = []
-      } else {
-        setDmMessages(prev => prev.filter(m => m.id !== tempId))
-        if (hadSelectedFile && originalFile) {
-          setSelectedFile(originalFile)
-        }
-        if (previewUrl && previewUrl !== audioUrl) {
-          URL.revokeObjectURL(previewUrl)
-        }
-      }
-    } else {
-      await sendMessageWithFile(content)
+      audioChunksRef.current = []
     }
   }
 
@@ -485,6 +540,12 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
     if (minutes < 1440) return `منذ ${Math.floor(minutes / 60)} ساعة`
     return date.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })
   }
+
+  const hasPendingFiles = pendingFiles.length > 0
+  const hasPendingAudio = pendingFiles.some(file => file.type?.startsWith('audio/'))
+  const hasPendingImages = pendingFiles.some(file => file.type?.startsWith('image/'))
+  const showAttachButton = !isRecording && !hasPendingAudio
+  const showRecordButton = !isRecording && !hasPendingAudio && !hasPendingImages
 
   return (
     <div className={dmStyles.dmContainer}>
@@ -672,76 +733,112 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
               <div ref={messagesEndRef} />
             </div>
 
-            <form className={styles.chat} onSubmit={send}>
+            {hasPendingFiles && (
+              <div className={styles.pendingAttachments}>
+                <div className={styles.pendingAttachmentsList}>
+                  {pendingFiles.map(file => (
+                    <div
+                      key={file.id}
+                      className={`${styles.pendingAttachmentCard} ${file.type?.startsWith('image/') ? styles.pendingAttachmentImageCard : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className={styles.pendingAttachmentRemove}
+                        onClick={() => removePendingFile(file.id)}
+                        aria-label="إزالة المرفق"
+                      >
+                        <CloseIcon size={14} />
+                      </button>
+                      {file.type?.startsWith('image/') ? (
+                        <>
+                          <img
+                            src={file.previewUrl}
+                            alt={file.name}
+                            className={styles.pendingAttachmentImage}
+                          />
+                          <input
+                            type="text"
+                            className={styles.pendingCaptionInput}
+                            placeholder="أضف تعليقاً"
+                            value={file.caption}
+                            onChange={(e) => updatePendingFileCaption(file.id, e.target.value)}
+                          />
+                        </>
+                      ) : file.type?.startsWith('audio/') ? (
+                        <audio controls src={file.previewUrl} className={styles.pendingAttachmentAudio} />
+                      ) : (
+                        <div className={styles.pendingAttachmentFile}>
+                          <PaperclipIcon size={20} />
+                          <span>{file.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {hasPendingAudio && (
+                  <div className={styles.pendingNotice}>
+                    سيتم إرسال التسجيل الصوتي فقط. أرسل أو احذف التسجيل لمتابعة الكتابة.
+                  </div>
+                )}
+              </div>
+            )}
+            <form className={`${styles.chat} ${hasPendingAudio ? styles.chatAudioPending : ''}`} onSubmit={send}>
               <input
                 ref={fileInputRef}
                 type="file"
                 onChange={handleFileSelect}
                 accept="*/*"
+                multiple
                 style={{ display: 'none' }}
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={styles.attachButton}
-                disabled={uploadingFile || isRecording}
-                aria-label="إرفاق ملف"
-              >
-                {uploadingFile ? <span className={styles.buttonSpinner} aria-hidden="true"></span> : <PaperclipIcon size={20} />}
-              </button>
-              {selectedFile && (
-                <div className={styles.selectedFileChip}>
-                  <PaperclipIcon size={16} />
-                  <span>{selectedFile.name}</span>
-                  <button 
-                    type="button"
-                    onClick={() => setSelectedFile(null)}
-                    aria-label="إلغاء الملف"
-                  >
-                    <CloseIcon size={14} />
-                  </button>
-                </div>
+              {showAttachButton && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={styles.attachButton}
+                  disabled={uploadingFile}
+                  aria-label="إرفاق ملف"
+                >
+                  {uploadingFile ? <span className={styles.buttonSpinner} aria-hidden="true"></span> : <PaperclipIcon size={20} />}
+                </button>
               )}
-              {audioUrl && !selectedFile && (
-                <div className={styles.selectedFileChip}>
-                  <MicIcon size={16} />
-                  <span>تسجيل صوتي</span>
-                  <button 
-                    type="button"
-                    onClick={cancelRecording}
-                    aria-label="إلغاء التسجيل"
-                  >
-                    <CloseIcon size={14} />
-                  </button>
-                </div>
-              )}
-              {!isRecording && !audioUrl && (
+              {showRecordButton && (
                 <button
                   type="button"
                   onClick={startRecording}
                   className={styles.recordButton}
-                  disabled={uploadingFile || selectedFile}
+                  disabled={uploadingFile}
                   aria-label="تسجيل صوتي"
                 >
                   <MicIcon size={20} />
                 </button>
               )}
-              {(isRecording || audioUrl) && (
-                <button
-                  type="button"
-                  onClick={isRecording ? stopRecording : cancelRecording}
-                  className={styles.stopRecordButton}
-                  aria-label={isRecording ? "إيقاف التسجيل" : "إلغاء"}
-                >
-                  {isRecording ? <StopIcon size={18} /> : <CloseIcon size={16} />}
-                </button>
+              {isRecording && (
+                <>
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className={styles.stopRecordButton}
+                    aria-label="إيقاف التسجيل"
+                  >
+                    <StopIcon size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelRecording}
+                    className={styles.cancelRecordButton}
+                    aria-label="إلغاء التسجيل"
+                  >
+                    <CloseIcon size={16} />
+                  </button>
+                </>
               )}
               <input
                 ref={inputRef}
                 className={styles.messageInput}
                 type="text"
-                placeholder={uploadingFile ? "جاري رفع الملف..." : isRecording ? "جاري التسجيل..." : "اكتب رسالتك هنا..."}
-                disabled={uploadingFile || isRecording}
+                placeholder={hasPendingFiles ? "أضف رسالة..." : isRecording ? "جاري التسجيل..." : "اكتب رسالتك هنا..."}
+                disabled={uploadingFile || isRecording || hasPendingAudio}
               />
               <button className={styles.submit} type="submit" aria-label="إرسال" disabled={uploadingFile || isRecording}>
                 <SendIcon size={20} />
