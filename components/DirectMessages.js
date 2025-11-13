@@ -197,7 +197,19 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'direct_message', filter: `thread_id=eq.${currentThread.id}`
       }, (payload) => {
-        setDmMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new])
+        if (!payload?.new?.id) return
+        setDmMessages(prev => {
+          const exists = prev.some(m => m.id === payload.new.id)
+          if (exists) return prev
+          const cleaned = prev.filter(m => {
+            if (typeof m?.id !== 'string' || !m.id.startsWith('temp-')) return true
+            const sameSender = m.sender_id === payload.new.sender_id
+            const sameFile = m.file_url && m.file_url === payload.new.file_url
+            const noFile = !m.file_url && !payload.new.file_url && m.content === payload.new.content
+            return !(sameSender && (sameFile || noFile))
+          })
+          return [...cleaned, payload.new]
+        })
       })
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
 

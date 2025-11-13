@@ -90,15 +90,26 @@ const Chat = ({ currentUser, session, supabase }) => {
                     console.log('📨 New message received:', payload.new)
                     // Add message immediately for instant display
                     setMessages(previous => {
+                        if (!payload?.new?.id) return previous
                         // Avoid duplicates - check by ID
                         const exists = previous.some(msg => msg.id === payload.new.id)
                         if (exists) {
                             console.log('⚠️ Duplicate message detected, skipping')
                             return previous
                         }
+
+                        // Remove matching optimistic message (same user & file)
+                        const cleaned = previous.filter(msg => {
+                            if (typeof msg?.id !== 'string') return true
+                            if (!msg.id.startsWith('temp-')) return true
+                            const sameUser = msg.user_id === payload.new.user_id
+                            const sameFile = msg.file_url && msg.file_url === payload.new.file_url
+                            const noFile = !msg.file_url && !payload.new.file_url && msg.content === payload.new.content
+                            return !(sameUser && (sameFile || noFile))
+                        })
                         
                         // Add immediately to the end for instant display
-                        const newMessages = [...previous, payload.new]
+                        const newMessages = [...cleaned, payload.new]
                         console.log('✅ Message added, total messages:', newMessages.length)
                         return newMessages
                     })
