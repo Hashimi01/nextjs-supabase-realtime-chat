@@ -6,7 +6,7 @@ import PendingAudioPreview from './PendingAudioPreview'
 import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon, SendIcon } from './Icons'
 
 
-const Chat = ({ currentUser, session, supabase }) => {
+const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
     if (!currentUser) return null
     const [messages, setMessages] = useState([])
     const [editingUsername, setEditingUsername] = useState(false)
@@ -55,8 +55,9 @@ const Chat = ({ currentUser, session, supabase }) => {
                 // Get all users
                 const { data: usersData, error: usersError } = await supabase
                     .from('user')
-                    .select('id, username')
-                
+                    .select('id, username, email')
+                    .order('created_at', { ascending: true })
+
                 if (!usersError && usersData) {
                     const usersMap = {}
                     usersData.forEach(user => {
@@ -136,7 +137,10 @@ const Chat = ({ currentUser, session, supabase }) => {
                 (payload) => {
                     setUsers(users => ({
                         ...users,
-                        [payload.new.id]: payload.new
+                        [payload.new.id]: {
+                            ...users[payload.new.id],
+                            ...payload.new
+                        }
                     }))
                 }
             )
@@ -151,7 +155,10 @@ const Chat = ({ currentUser, session, supabase }) => {
                 (payload) => {
                     setUsers(users => ({
                         ...users,
-                            [payload.new.id]: payload.new
+                        [payload.new.id]: {
+                            ...users[payload.new.id],
+                            ...payload.new
+                        }
                     }))
                 }
             )
@@ -559,7 +566,7 @@ const Chat = ({ currentUser, session, supabase }) => {
         } else {
             newUsername.current.value = ""
         setEditingUsername(false)
-        }
+    }
     }
 
 
@@ -567,7 +574,26 @@ const Chat = ({ currentUser, session, supabase }) => {
         if (!user_id) return "مجهول"
         const user = users[user_id]
         if (!user) return session?.user?.email?.split('@')[0] || "مستخدم"
-        return user.username || session?.user?.email?.split('@')[0] || "مستخدم"
+        if (user.username) return user.username
+        if (user.email) return user.email.split('@')[0]
+        return session?.user?.email?.split('@')[0] || "مستخدم"
+    }
+
+    const getInitials = (user_id) => {
+        const user = users[user_id]
+        const nameSource = user?.username || user?.email || user_id || ''
+        const cleaned = nameSource.replace(/[^\p{L}\p{N} ]+/gu, '').trim()
+        if (!cleaned) return '؟'
+        const parts = cleaned.split(/\s+/).filter(Boolean)
+        if (parts.length === 1) {
+            return parts[0].slice(0, 2).toUpperCase()
+        }
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+
+    const getUserEmail = (user_id) => {
+        const user = users[user_id]
+        return user?.email || null
     }
 
     const formatTime = (timestamp) => {
@@ -666,6 +692,16 @@ const Chat = ({ currentUser, session, supabase }) => {
                             key={msg.id} 
                             className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}
                         >
+                            {!isOwnMessage && (
+                                <button
+                                    type="button"
+                                    className={styles.messageAvatar}
+                                    onClick={() => onOpenDirectMessages?.(msg.user_id)}
+                                    title="فتح الدردشة الخاصة"
+                                >
+                                    {getInitials(msg.user_id)}
+                                </button>
+                            )}
                             <div className={`${styles.messageBubble} ${isOwnMessage ? styles.ownMessage : styles.otherMessage} ${msg.uploading ? styles.uploadingBubble : ''}`}>
                                 {fileUrl && (
                                     <div className={styles.messageFile}>

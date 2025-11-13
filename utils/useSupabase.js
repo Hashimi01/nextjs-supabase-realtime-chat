@@ -33,21 +33,26 @@ const useSupabase = () => {
         let channel = null
 
         const getCurrentUser = async () => {
+            const userId = session.user.id
+            const userEmail = session.user.email
+
             // First, try to get existing user
             let { data: currentUserData, error } = await supabase
                 .from('user')
                 .select('*')
-                .eq('id', session.user.id)
+                .eq('id', userId)
                 .single()
 
             // If user doesn't exist, create it
             if (error && error.code === 'PGRST116') {
+                const insertPayload = {
+                    id: userId,
+                    username: null,
+                    email: userEmail
+                }
                 const { data: newUser, error: insertError } = await supabase
                     .from('user')
-                    .insert([{
-                        id: session.user.id,
-                        username: null
-                    }])
+                    .insert([insertPayload])
                     .select()
                     .single()
 
@@ -61,6 +66,19 @@ const useSupabase = () => {
                 console.error('Error fetching user:', error)
                 setCurrentUser(null)
                 return
+            }
+
+            // Ensure email column stays in sync with auth email
+            if (userEmail && currentUserData.email !== userEmail) {
+                const { data: updated } = await supabase
+                    .from('user')
+                    .update({ email: userEmail })
+                    .eq('id', userId)
+                    .select()
+                    .single()
+                if (updated) {
+                    currentUserData = updated
+                }
             }
 
             setCurrentUser(currentUserData)

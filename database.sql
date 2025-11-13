@@ -12,9 +12,22 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.user (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     username TEXT,
+    email TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'user'
+          AND column_name = 'email'
+    ) THEN
+        ALTER TABLE public.user ADD COLUMN email TEXT;
+    END IF;
+END $$;
 
 -- ============================================
 -- Table: message
@@ -429,8 +442,8 @@ GRANT SELECT ON public.user TO anon, authenticated;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.user (id, username)
-    VALUES (NEW.id, NULL);
+    INSERT INTO public.user (id, username, email)
+    VALUES (NEW.id, NULL, NEW.email);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

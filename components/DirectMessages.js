@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import styles from '../styles/Chat.module.css'
 import dmStyles from '../styles/DirectMessages.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
@@ -6,7 +6,7 @@ import AudioPlayer from './AudioPlayer'
 import PendingAudioPreview from './PendingAudioPreview'
 import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, SendIcon } from './Icons'
 
-const DirectMessages = ({ currentUser, session, supabase }) => {
+const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
   if (!session?.user?.id) return null
 
   const [query, setQuery] = useState('')
@@ -37,6 +37,36 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
     if (!currentThread) return null
     return currentThread.user_a === myUserId ? currentThread.user_b : currentThread.user_a
   }, [currentThread, myUserId])
+
+  const openWithUser = async (partnerId) => {
+    const { data: threadId, error } = await supabase.rpc('ensure_dm_thread', { partner_id: partnerId })
+    if (error) {
+      console.error('ensure_dm_thread error:', error)
+      return
+    }
+
+    const { data: thread, error: threadError } = await supabase
+      .from('direct_message_thread')
+      .select('*')
+      .eq('id', threadId)
+      .single()
+
+    if (threadError) {
+      console.error('Error fetching DM thread:', threadError)
+      return
+    }
+
+    clearPendingFiles()
+    if (inputRef.current) inputRef.current.value = ''
+    setCurrentThread(thread)
+  }
+
+  useImperativeHandle(ref, () => ({
+    openThreadWith: async (partnerId) => {
+      await openWithUser(partnerId)
+      setShowSidebar(false)
+    }
+  }))
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -119,41 +149,63 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   // Search users by name or email
   useEffect(() => {
     const run = async () => {
-      if (!query.trim()) { setSearchResults([]); return }
-      
-      // Search by username first, then by email if no results
-      const { data: usernameData, error: usernameError } = await supabase
-        .from('user')
-        .select('id, username')
-        .ilike('username', `%${query}%`)
-        .limit(10)
+      const trimmed = query.trim()
 
-      if (!usernameError && usernameData) {
-        setSearchResults((usernameData || []).filter(u => u.id !== myUserId))
-      } else {
-        // Fallback: search auth.users by email (if we have access)
-        // For now, just show username results
+      if (!trimmed) {
+        const { data, error } = await supabase
+          .from('user')
+          .select('id, username, email')
+          .neq('id', myUserId)
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        if (error) {
+          console.error('Error loading users for search:', error)
+          setSearchResults([])
+          return
+        }
+
+        setSearchResults(data || [])
+        if (data?.length) {
+          setUsersMap(prev => {
+            const next = { ...prev }
+            data.forEach(u => { next[u.id] = { ...next[u.id], ...u } })
+            return next
+          })
+        }
+        return
+      }
+
+      const pattern = `%${trimmed}%`
+
+      const { data, error } = await supabase
+        .from('user')
+        .select('id, username, email')
+        .or(`username.ilike.${pattern},email.ilike.${pattern}`)
+        .limit(20)
+
+      if (error) {
+        console.error('Error searching users:', error)
         setSearchResults([])
+        return
+      }
+
+      const filtered = (data || []).filter(u => u.id !== myUserId)
+      setSearchResults(filtered)
+
+      if (filtered.length) {
+        setUsersMap(prev => {
+          const next = { ...prev }
+          filtered.forEach(u => {
+            next[u.id] = { ...next[u.id], ...u }
+          })
+          return next
+        })
       }
     }
     const t = setTimeout(run, 250)
     return () => clearTimeout(t)
   }, [query, supabase, myUserId])
-
-  // Open or create a thread with userId
-  const openWithUser = async (partnerId) => {
-    const { data: threadId, error } = await supabase.rpc('ensure_dm_thread', { partner_id: partnerId })
-    if (error) return console.error('ensure_dm_thread error:', error)
-
-    const { data: thread } = await supabase
-      .from('direct_message_thread')
-      .select('*')
-      .eq('id', threadId)
-      .single()
-    clearPendingFiles()
-    if (inputRef.current) inputRef.current.value = ''
-    setCurrentThread(thread)
-  }
 
   // Load missing users (to show names in list)
   useEffect(() => {
@@ -166,11 +218,16 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       const missing = Array.from(ids).filter(id => !usersMap[id] && id)
       if (missing.length === 0) return
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user')
-        .select('id, username')
+        .select('id, username, email')
         .in('id', missing)
       
+      if (error) {
+        console.error('Error loading users map:', error)
+        return
+      }
+
       if (data) {
         const map = {}
         data.forEach(u => { map[u.id] = u })
@@ -563,7 +620,9 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
   const getDisplayName = (userId) => {
     const user = usersMap[userId]
     if (!user) return userId?.substring(0, 8) || 'مستخدم'
-    return user.username || userId?.substring(0, 8) || 'مستخدم'
+    if (user.username) return user.username
+    if (user.email) return user.email.split('@')[0]
+    return userId?.substring(0, 8) || 'مستخدم'
   }
 
   const getAvatarLetter = (userId) => {
@@ -955,7 +1014,9 @@ const DirectMessages = ({ currentUser, session, supabase }) => {
       </div>
     </div>
   )
-}
+})
+
+DirectMessages.displayName = 'DirectMessages'
 
 export default DirectMessages
 

@@ -160,6 +160,8 @@
 
 .messageWrapper {
   display: flex;
+  align-items: flex-end;
+  gap: 8px;
   margin: 2px 0;
   width: 100%;
   padding: 0 12px;
@@ -184,6 +186,39 @@
   word-wrap: break-word;
   box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
   margin: 2px 0;
+}
+
+.messageAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(7, 94, 84, 0.12);
+  color: #075e54;
+  margin-inline-end: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.otherMessageWrapper .messageAvatar {
+  order: -1;
+  margin-inline-end: 8px;
+}
+
+.messageAvatar:hover {
+  transform: scale(1.05);
+  background: rgba(7, 94, 84, 0.18);
+}
+
+.messageAvatar:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(7, 94, 84, 0.2);
 }
 
 .ownMessage {

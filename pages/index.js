@@ -6,14 +6,16 @@ import Chat from '../components/Chat'
 import DirectMessages from '../components/DirectMessages'
 import Profile from '../components/Profile'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function Home({ currentUser, session, supabase }) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [tab, setTab] = useState('public') // 'public' | 'private' | 'profile'
   const [sidebarOpen, setSidebarOpen] = useState(true) // Default open on desktop
   const [isDesktop, setIsDesktop] = useState(true)
-  
+
+  const directMessagesRef = useRef(null)
+
   useEffect(()=> {
     setLoggedIn(!! session)
     
@@ -25,6 +27,13 @@ export default function Home({ currentUser, session, supabase }) {
     window.addEventListener('resize', checkDesktop)
     return () => window.removeEventListener('resize', checkDesktop)
   }, [session])
+
+  const handleOpenDirectMessages = (userId) => {
+    setTab('private')
+    setTimeout(() => {
+      directMessagesRef.current?.openThreadWith(userId)
+    }, 0)
+  }
 
   const getAvatarLetter = () => {
     const name = currentUser?.username || session?.user?.email || 'U'
@@ -47,9 +56,14 @@ export default function Home({ currentUser, session, supabase }) {
           tab === 'profile' ? (
             <Profile currentUser={currentUser} session={session} supabase={supabase} onBack={() => setTab('public')} />
           ) : tab === 'public' ? (
-            <Chat currentUser = { currentUser } session = {session} supabase = { supabase } />
+            <Chat currentUser = { currentUser } session = {session} supabase = { supabase } onOpenDirectMessages={handleOpenDirectMessages} />
           ) : (
-            <DirectMessages currentUser = { currentUser } session = {session} supabase = { supabase } />
+            <DirectMessages
+              ref={directMessagesRef}
+              currentUser = { currentUser }
+              session = {session}
+              supabase = { supabase }
+            />
           )
         ) : (
           <Auth supabase = { supabase } />
