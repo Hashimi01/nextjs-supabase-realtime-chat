@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import styles from '../styles/Chat.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
+import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon } from './Icons'
 
 
 const Chat = ({ currentUser, session, supabase }) => {
@@ -274,7 +275,7 @@ const Chat = ({ currentUser, session, supabase }) => {
         audioChunksRef.current = []
     }
 
-    const sendMessageWithFile = async (content, fileInfo = null) => {
+    const sendMessageWithFile = async (content, fileInfo = null, existingTempId = null) => {
         if (!content && !fileInfo) return
 
         if (!isConnected) {
@@ -285,19 +286,31 @@ const Chat = ({ currentUser, session, supabase }) => {
         // Clear input
         if (message.current) message.current.value = ""
 
-        // Optimistic update
-        const tempMessage = {
-            id: `temp-${Date.now()}`,
-            content: content || '',
-            user_id: session.user.id,
-            file_url: fileInfo?.file_url || null,
-            file_type: fileInfo?.file_type || null,
-            file_name: fileInfo?.file_name || null,
-            created_at: new Date().toISOString()
+        let tempId = existingTempId
+        if (tempId) {
+            setMessages(previous =>
+                previous.map(msg =>
+                    msg.id === tempId ? { ...msg, uploading: true } : msg
+                )
+            )
         }
-        
-        setMessages(previous => [...previous, tempMessage])
-        scrollToBottom()
+
+        if (!tempId) {
+            tempId = `temp-${Date.now()}`
+            const tempMessage = {
+                id: tempId,
+                content: content || '',
+                user_id: session.user.id,
+                file_url: fileInfo?.file_url || null,
+                file_type: fileInfo?.file_type || null,
+                file_name: fileInfo?.file_name || null,
+                created_at: new Date().toISOString(),
+                uploading: !!fileInfo
+            }
+            
+            setMessages(previous => [...previous, tempMessage])
+            scrollToBottom()
+        }
 
         const messageData = {
             content: content || '',
@@ -317,15 +330,17 @@ const Chat = ({ currentUser, session, supabase }) => {
         
         if (error) {
             console.error('Error sending message:', error)
-            setMessages(previous => previous.filter(msg => msg.id !== tempMessage.id))
+            setMessages(previous => previous.filter(msg => msg.id !== tempId))
             alert('❌ فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.')
-            if (message.current) message.current.value = content
+            if (!existingTempId && message.current) message.current.value = content
+            return null
         } else {
             setMessages(previous => 
                 previous.map(msg => 
-                    msg.id === tempMessage.id ? data : msg
+                    msg.id === tempId ? data : msg
                 )
             )
+            return data
         }
     }
 
@@ -347,12 +362,46 @@ const Chat = ({ currentUser, session, supabase }) => {
 
         // Upload file if exists
         if (fileToSend) {
+            const tempId = `temp-${Date.now()}`
+            let previewUrl = null
+            const isAudio = fileToSend.type?.startsWith('audio/') || fileToSend.type === 'audio/webm'
+            if (audioUrl && isAudio) {
+                previewUrl = audioUrl
+            } else if (fileToSend.type?.startsWith('image/')) {
+                previewUrl = URL.createObjectURL(fileToSend)
+            }
+
+            const optimisticMessage = {
+                id: tempId,
+                content: content || '',
+                user_id: session.user.id,
+                file_url: previewUrl || null,
+                previewUrl: previewUrl || null,
+                file_type: fileToSend.type || (isAudio ? 'audio/webm' : null),
+                file_name: fileToSend.name || (isAudio ? `audio_${Date.now()}.webm` : null),
+                created_at: new Date().toISOString(),
+                uploading: true
+            }
+
+            setMessages(previous => [...previous, optimisticMessage])
+            scrollToBottom()
+
+            const originalFile = fileToSend
+            const hadSelectedFile = !!selectedFile
+            if (hadSelectedFile) {
+                setSelectedFile(null)
+            }
+
             setUploadingFile(true)
             fileInfo = await uploadFile(fileToSend)
             setUploadingFile(false)
             
             if (fileInfo) {
-                await sendMessageWithFile(content || '', fileInfo)
+                const result = await sendMessageWithFile(content || '', fileInfo, tempId)
+                if (result && previewUrl && previewUrl !== audioUrl) {
+                    URL.revokeObjectURL(previewUrl)
+                }
+
                 setSelectedFile(null)
                 if (audioUrl) {
                     URL.revokeObjectURL(audioUrl)
@@ -360,6 +409,14 @@ const Chat = ({ currentUser, session, supabase }) => {
                 setAudioBlob(null)
                 setAudioUrl(null)
                 audioChunksRef.current = []
+            } else {
+                setMessages(previous => previous.filter(msg => msg.id !== tempId))
+                if (hadSelectedFile && originalFile) {
+                    setSelectedFile(originalFile)
+                }
+                if (previewUrl && previewUrl !== audioUrl) {
+                    URL.revokeObjectURL(previewUrl)
+                }
             }
         } else {
             await sendMessageWithFile(content)
@@ -415,7 +472,8 @@ const Chat = ({ currentUser, session, supabase }) => {
                 <p className={styles.headerUser}>
                     مرحباً، {currentUser.username || session.user.email}
                     <span className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
-                        {isConnected ? '🟢 متصل' : '🔴 غير متصل'}
+                        <span className={`${styles.statusDot} ${isConnected ? styles.statusDotOnline : styles.statusDotOffline}`} aria-hidden="true"></span>
+                        {isConnected ? 'متصل' : 'غير متصل'}
                     </span>
                 </p>
             </div>
@@ -455,7 +513,10 @@ const Chat = ({ currentUser, session, supabase }) => {
         <div className={styles.container} ref={messagesContainerRef}>
             {messages.length === 0 ? (
                 <div className={styles.emptyState}>
-                    <p>لا توجد رسائل بعد. كن أول من يرسل رسالة! 👋</p>
+                    <p>
+                        <WaveIcon size={20} className={styles.emptyStateIcon} />
+                        لا توجد رسائل بعد. كن أول من يرسل رسالة!
+                    </p>
                 </div>
             ) : (
                 messages.map((msg, index) => {
@@ -465,31 +526,43 @@ const Chat = ({ currentUser, session, supabase }) => {
                     const showTime = !nextMessage || nextMessage.user_id !== msg.user_id || 
                                     (new Date(nextMessage.created_at) - new Date(msg.created_at)) > 300000 // 5 minutes
                     
+                    const fileUrl = msg.previewUrl || msg.file_url
+                    const fileType = msg.file_type
+
                     return (
                         <div 
                             key={msg.id} 
                             className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}
                         >
-                            <div className={`${styles.messageBubble} ${isOwnMessage ? styles.ownMessage : styles.otherMessage}`}>
-                                {msg.file_url && (
+                            <div className={`${styles.messageBubble} ${isOwnMessage ? styles.ownMessage : styles.otherMessage} ${msg.uploading ? styles.uploadingBubble : ''}`}>
+                                {fileUrl && (
                                     <div className={styles.messageFile}>
-                                        {msg.file_type?.startsWith('image/') ? (
+                                        {fileType?.startsWith('image/') ? (
                                             <img 
-                                                src={msg.file_url} 
+                                                src={fileUrl} 
                                                 alt={msg.file_name || 'صورة'}
                                                 className={styles.messageImage}
-                                                onClick={() => window.open(msg.file_url, '_blank')}
+                                                onClick={() => !msg.uploading && window.open(msg.file_url, '_blank')}
                                             />
-                                        ) : msg.file_type?.startsWith('audio/') ? (
-                                            <AudioPlayer src={msg.file_url} isOwn={msg.user_id === session.user.id} />
+                                        ) : fileType?.startsWith('audio/') ? (
+                                            msg.uploading && fileUrl?.startsWith('blob:')
+                                                ? <audio controls src={fileUrl} className={styles.messageAudio} />
+                                                : <AudioPlayer src={fileUrl} isOwn={msg.user_id === session.user.id} />
                                         ) : (
                                             <a 
-                                                href={msg.file_url} 
+                                                href={msg.uploading ? undefined : msg.file_url} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
                                                 className={styles.messageFileLink}
+                                                onClick={(e) => {
+                                                    if (msg.uploading) {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                    }
+                                                }}
                                             >
-                                                📎 {msg.file_name || 'ملف'}
+                                                <PaperclipIcon size={16} className={styles.messageFileLinkIcon} />
+                                                {msg.file_name || 'ملف'}
                                             </a>
                                         )}
                                     </div>
@@ -501,10 +574,16 @@ const Chat = ({ currentUser, session, supabase }) => {
                                         {msg.content}
                                     </div>
                                 ) : null}
+                                {msg.uploading && (
+                                    <div className={styles.uploadingStatus}>
+                                        <span className={styles.uploadingSpinner}></span>
+                                        جاري الرفع...
+                                    </div>
+                                )}
                                 {showTime && (
                                     <div className={styles.messageTime}>
                                         {formatTime(msg.created_at)}
-                                        {isOwnMessage && <span className={styles.messageTick}>✓</span>}
+                                        {isOwnMessage && <CheckIcon size={16} className={styles.messageTickIcon} />}
                 </div>
             )}
                             </div>
@@ -515,27 +594,6 @@ const Chat = ({ currentUser, session, supabase }) => {
             <div ref={messagesEndRef} />
         </div>
     
-        {(selectedFile || audioUrl) && (
-            <div className={styles.filePreview}>
-                {audioUrl ? (
-                    <div className={styles.audioPreview}>
-                        <audio controls src={audioUrl} style={{ maxWidth: '100%' }} />
-                    </div>
-                ) : selectedFile ? (
-                    <div className={styles.filePreviewItem}>
-                        <span>📎 {selectedFile.name}</span>
-                        <button 
-                            type="button"
-                            onClick={() => setSelectedFile(null)}
-                            className={styles.cancelFileButton}
-                            aria-label="إلغاء"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                ) : null}
-            </div>
-        )}
         <form className={styles.chat} onSubmit={sendMessage}>
             <input
                 ref={fileInputRef}
@@ -551,8 +609,34 @@ const Chat = ({ currentUser, session, supabase }) => {
                 disabled={uploadingFile || isRecording}
                 aria-label="إرفاق ملف"
             >
-                {uploadingFile ? '⏳' : '📎'}
+                {uploadingFile ? <span className={styles.buttonSpinner} aria-hidden="true"></span> : <PaperclipIcon size={20} />}
             </button>
+            {selectedFile && (
+                <div className={styles.selectedFileChip}>
+                    <PaperclipIcon size={16} />
+                    <span>{selectedFile.name}</span>
+                    <button 
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        aria-label="إلغاء الملف"
+                    >
+                        <CloseIcon size={14} />
+                    </button>
+                </div>
+            )}
+            {audioUrl && !selectedFile && (
+                <div className={styles.selectedFileChip}>
+                    <MicIcon size={16} />
+                    <span>تسجيل صوتي</span>
+                    <button 
+                        type="button"
+                        onClick={cancelRecording}
+                        aria-label="إلغاء التسجيل"
+                    >
+                        <CloseIcon size={14} />
+                    </button>
+                </div>
+            )}
             {!isRecording && !audioUrl && (
                 <button
                     type="button"
@@ -561,7 +645,7 @@ const Chat = ({ currentUser, session, supabase }) => {
                     disabled={uploadingFile || selectedFile}
                     aria-label="تسجيل صوتي"
                 >
-                    🎤
+                    <MicIcon size={20} />
                 </button>
             )}
             {(isRecording || audioUrl) && (
@@ -571,13 +655,13 @@ const Chat = ({ currentUser, session, supabase }) => {
                     className={styles.stopRecordButton}
                     aria-label={isRecording ? "إيقاف التسجيل" : "إلغاء"}
                 >
-                    {isRecording ? '⏹️' : '✕'}
+                    {isRecording ? <StopIcon size={18} /> : <CloseIcon size={16} />}
                 </button>
             )}
             <input 
                 className={styles.messageInput} 
                 type="text" 
-                placeholder={uploadingFile ? "جاري رفع الملف..." : isRecording ? "🎤 جاري التسجيل..." : "اكتب رسالتك هنا..."}
+                placeholder={uploadingFile ? "جاري رفع الملف..." : isRecording ? "جاري التسجيل..." : "اكتب رسالتك هنا..."}
                 ref={message}
                 disabled={uploadingFile || isRecording}
             />
