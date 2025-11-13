@@ -59,3 +59,14 @@ export const SendIcon = createIcon(
   </>
 )
 
+export const PlayIcon = createIcon(
+  <path d="M8 5v14l11-7z" />
+)
+
+export const PauseIcon = createIcon(
+  <>
+    <path d="M9 5h2v14H9z" />
+    <path d="M13 5h2v14h-2z" />
+  </>
+)
+

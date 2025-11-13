@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import styles from '../styles/Chat.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
+import PendingAudioPreview from './PendingAudioPreview'
 import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon, SendIcon } from './Icons'
 
 
@@ -14,6 +15,7 @@ const Chat = ({ currentUser, session, supabase }) => {
     const [uploadingFile, setUploadingFile] = useState(false)
     const [pendingFiles, setPendingFiles] = useState([])
     const [isRecording, setIsRecording] = useState(false)
+    const [previewMedia, setPreviewMedia] = useState(null)
     const message = useRef(null)
     const newUsername = useRef(currentUser.username)
     const fileInputRef = useRef(null)
@@ -182,6 +184,30 @@ const Chat = ({ currentUser, session, supabase }) => {
         }
     }, [supabase, session.user.id])
     
+    const loadAudioDuration = (url) => {
+        return new Promise((resolve) => {
+            const audio = document.createElement('audio')
+            const cleanup = () => {
+                audio.removeEventListener('loadedmetadata', handleLoaded)
+                audio.removeEventListener('error', handleError)
+                audio.remove()
+            }
+            const handleLoaded = () => {
+                const duration = Number.isFinite(audio.duration) ? audio.duration : 0
+                cleanup()
+                resolve(duration)
+            }
+            const handleError = () => {
+                cleanup()
+                resolve(0)
+            }
+            audio.addEventListener('loadedmetadata', handleLoaded, { once: true })
+            audio.addEventListener('error', handleError, { once: true })
+            audio.preload = 'metadata'
+            audio.src = url
+        })
+    }
+
     const uploadFile = async (file) => {
         if (!file) return null
         
@@ -217,13 +243,13 @@ const Chat = ({ currentUser, session, supabase }) => {
 
         const newEntries = []
 
-        files.forEach(file => {
+        files.forEach((file, index) => {
             if (file.size > 10 * 1024 * 1024) {
                 alert(`❌ الملف "${file.name}" يتجاوز الحد الأقصى 10 MB`)
                 return
             }
 
-            const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            const id = `local-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`
             let previewUrl = null
             if (file.type?.startsWith('image/') || file.type?.startsWith('audio/')) {
                 try {
@@ -239,8 +265,28 @@ const Chat = ({ currentUser, session, supabase }) => {
                 name: file.name,
                 type: file.type,
                 previewUrl,
-                caption: ''
+                caption: '',
+                duration: 0
             })
+
+            if (file.type?.startsWith('audio/')) {
+                const targetId = id
+                loadAudioDuration(previewUrl || file)
+                    .then(duration => {
+                        setPendingFiles(prev =>
+                            prev.map(item =>
+                                item.id === targetId ? { ...item, duration } : item
+                            )
+                        )
+                    })
+                    .catch(() => {
+                        setPendingFiles(prev =>
+                            prev.map(item =>
+                                item.id === targetId ? { ...item, duration: 0 } : item
+                            )
+                        )
+                    })
+            }
         })
 
         if (newEntries.length > 0) {
@@ -304,18 +350,36 @@ const Chat = ({ currentUser, session, supabase }) => {
 
                 const audioFile = new File(chunks, `audio_${Date.now()}.webm`, { type: 'audio/webm' })
                 const audioPreview = URL.createObjectURL(audioFile)
+                const audioId = `local-audio-${Date.now()}`
 
                 setPendingFiles(prev => [
                     ...prev,
                     {
-                        id: `local-audio-${Date.now()}`,
+                        id: audioId,
                         file: audioFile,
                         name: audioFile.name,
                         type: audioFile.type,
                         previewUrl: audioPreview,
-                        caption: ''
+                        caption: '',
+                        duration: 0
                     }
                 ])
+
+                loadAudioDuration(audioPreview)
+                    .then(duration => {
+                        setPendingFiles(prev =>
+                            prev.map(item =>
+                                item.id === audioId ? { ...item, duration } : item
+                            )
+                        )
+                    })
+                    .catch(() => {
+                        setPendingFiles(prev =>
+                            prev.map(item =>
+                                item.id === audioId ? { ...item, duration: 0 } : item
+                            )
+                        )
+                    })
             }
 
             mediaRecorder.start()
@@ -519,9 +583,18 @@ const Chat = ({ currentUser, session, supabase }) => {
     const hasPendingFiles = pendingFiles.length > 0
     const hasPendingAudio = pendingFiles.some(file => file.type?.startsWith('audio/'))
     const hasPendingImages = pendingFiles.some(file => file.type?.startsWith('image/'))
-    const showMessageInput = !hasPendingAudio
     const showAttachButton = !isRecording && !hasPendingAudio
     const showRecordButton = !isRecording && !hasPendingAudio && !hasPendingImages
+
+    useEffect(() => {
+        const handleKey = (event) => {
+            if (event.key === 'Escape') {
+                setPreviewMedia(null)
+            }
+        }
+        window.addEventListener('keydown', handleKey)
+        return () => window.removeEventListener('keydown', handleKey)
+    }, [])
 
     return ( 
     <>
@@ -597,12 +670,18 @@ const Chat = ({ currentUser, session, supabase }) => {
                                 {fileUrl && (
                                     <div className={styles.messageFile}>
                                         {fileType?.startsWith('image/') ? (
-                                            <img 
-                                                src={fileUrl} 
-                                                alt={msg.file_name || 'صورة'}
-                                                className={styles.messageImage}
-                                                onClick={() => !msg.uploading && window.open(msg.file_url, '_blank')}
-                                            />
+                                            <button
+                                                type="button"
+                                                className={styles.messageImageButton}
+                                                onClick={() => !msg.uploading && setPreviewMedia({ url: fileUrl, name: msg.file_name || 'صورة' })}
+                                                disabled={msg.uploading}
+                                            >
+                                                <img 
+                                                    src={fileUrl} 
+                                                    alt={msg.file_name || 'صورة'}
+                                                    className={styles.messageImage}
+                                                />
+                                            </button>
                                         ) : fileType?.startsWith('audio/') ? (
                                             msg.uploading && fileUrl?.startsWith('blob:')
                                                 ? <audio controls src={fileUrl} className={styles.messageAudio} />
@@ -657,42 +736,56 @@ const Chat = ({ currentUser, session, supabase }) => {
             <div className={styles.pendingAttachments}>
                 <div className={styles.pendingAttachmentsList}>
                     {pendingFiles.map(file => (
-                        <div
-                            key={file.id}
-                            className={`${styles.pendingAttachmentCard} ${file.type?.startsWith('image/') ? styles.pendingAttachmentImageCard : ''}`}
-                        >
-                            <button
-                                type="button"
-                                className={styles.pendingAttachmentRemove}
-                                onClick={() => removePendingFile(file.id)}
-                                aria-label="إزالة المرفق"
-                            >
-                                <CloseIcon size={14} />
-                            </button>
-                            {file.type?.startsWith('image/') ? (
-                                <>
-                                    <img
-                                        src={file.previewUrl}
-                                        alt={file.name}
-                                        className={styles.pendingAttachmentImage}
-                                    />
-                                    <input
-                                        type="text"
-                                        className={styles.pendingCaptionInput}
-                                        placeholder="أضف تعليقاً"
-                                        value={file.caption}
-                                        onChange={(e) => updatePendingFileCaption(file.id, e.target.value)}
-                                    />
-                                </>
-                            ) : file.type?.startsWith('audio/') ? (
-                                <audio controls src={file.previewUrl} className={styles.pendingAttachmentAudio} />
-                            ) : (
-                                <div className={styles.pendingAttachmentFile}>
-                                    <PaperclipIcon size={20} />
-                                    <span>{file.name}</span>
+                        file.type?.startsWith('audio/')
+                            ? (
+                                <PendingAudioPreview
+                                    key={file.id}
+                                    file={file}
+                                    onRemove={() => removePendingFile(file.id)}
+                                />
+                            )
+                            : (
+                                <div
+                                    key={file.id}
+                                    className={`${styles.pendingAttachmentCard} ${file.type?.startsWith('image/') ? styles.pendingAttachmentImageCard : ''}`}
+                                >
+                                    <button
+                                        type="button"
+                                        className={styles.pendingAttachmentRemove}
+                                        onClick={() => removePendingFile(file.id)}
+                                        aria-label="إزالة المرفق"
+                                    >
+                                        <CloseIcon size={14} />
+                                    </button>
+                                    {file.type?.startsWith('image/') ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className={styles.pendingAttachmentImageButton}
+                                                onClick={() => setPreviewMedia({ url: file.previewUrl, name: file.name })}
+                                            >
+                                                <img
+                                                    src={file.previewUrl}
+                                                    alt={file.name}
+                                                    className={styles.pendingAttachmentImage}
+                                                />
+                                            </button>
+                                            <input
+                                                type="text"
+                                                className={styles.pendingCaptionInput}
+                                                placeholder="أضف تعليقاً"
+                                                value={file.caption}
+                                                onChange={(e) => updatePendingFileCaption(file.id, e.target.value)}
+                                            />
+                                        </>
+                                    ) : (
+                                        <div className={styles.pendingAttachmentFile}>
+                                            <PaperclipIcon size={20} />
+                                            <span>{file.name}</span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            )
                     ))}
                 </div>
                 {hasPendingAudio && (
@@ -764,6 +857,24 @@ const Chat = ({ currentUser, session, supabase }) => {
                 <SendIcon size={20} />
             </button>
         </form>
+        {previewMedia && (
+            <div className={styles.mediaPreviewOverlay} onClick={() => setPreviewMedia(null)}>
+                <div className={styles.mediaPreviewContainer} onClick={(e) => e.stopPropagation()}>
+                    <button
+                        className={styles.mediaPreviewClose}
+                        type="button"
+                        onClick={() => setPreviewMedia(null)}
+                        aria-label="إغلاق المعاينة"
+                    >
+                        <CloseIcon size={18} />
+                    </button>
+                    <img src={previewMedia.url} alt={previewMedia.name || 'صورة'} className={styles.mediaPreviewImage} />
+                    {previewMedia.name && (
+                        <div className={styles.mediaPreviewCaption}>{previewMedia.name}</div>
+                    )}
+                </div>
+            </div>
+        )}
     </>
     )
 }

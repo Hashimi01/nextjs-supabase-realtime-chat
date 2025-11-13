@@ -265,7 +265,7 @@
 
 .chatAudioPending .messageInput {
   display: none;
-}
+} 
 
 .messageInput {
   flex: 1;
@@ -400,6 +400,14 @@
   max-width: 260px;
 }
 
+.pendingAttachmentImageButton {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
 .pendingAttachmentRemove {
   position: absolute;
   top: 8px;
@@ -468,6 +476,91 @@
   text-align: center;
 }
 
+.pendingAudioBubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f5f7f9;
+  border-radius: 18px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  min-width: 220px;
+}
+
+.pendingAudioDelete {
+  border: none;
+  background: rgba(0,0,0,0.08);
+  color: #111b21;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pendingAudioDelete:hover {
+  background: rgba(0,0,0,0.16);
+}
+
+.pendingAudioIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d4f;
+}
+
+.pendingAudioInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.pendingAudioPlay {
+  border: none;
+  background: rgba(7, 94, 84, 0.15);
+  color: #075e54;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pendingAudioPlay:hover {
+  background: rgba(7, 94, 84, 0.25);
+}
+
+.pendingAudioTime {
+  font-size: 13px;
+  color: #111b21;
+  min-width: 36px;
+}
+
+.pendingAudioWave {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.pendingAudioWaveProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #25d366;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
 .selectedFileChip {
   display: inline-flex;
   align-items: center;
@@ -510,6 +603,19 @@
   margin-bottom: 8px;
   border-radius: 4px;
   overflow: hidden;
+}
+
+.messageImageButton {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
+.messageImageButton:disabled {
+  cursor: default;
+  opacity: 0.8;
 }
 
 .messageImage {
@@ -731,6 +837,56 @@
   background: rgba(0, 0, 0, 0.15);
 }
 
+.mediaPreviewOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+}
+
+.mediaPreviewContainer {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mediaPreviewImage {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.45);
+}
+
+.mediaPreviewClose {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  border: none;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mediaPreviewCaption {
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .messageBubble {
@@ -779,6 +935,10 @@
   .pendingAttachmentCard {
     min-width: 160px;
     max-width: 200px;
+  }
+
+  .pendingAudioBubble {
+    padding: 10px 12px;
   }
 }
 
