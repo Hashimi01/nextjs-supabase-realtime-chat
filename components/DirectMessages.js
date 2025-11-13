@@ -804,6 +804,16 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
         const preview = getMessagePreview(message)
         const lastMessageTime = message.created_at
 
+        if (message.sender_id !== myUserId && !message.delivered_at && !deliveredMarkedRef.current.has(message.id)) {
+          const timestamp = new Date().toISOString()
+          deliveredMarkedRef.current.add(message.id)
+          supabase
+            .from('direct_message')
+            .update({ delivered_at: timestamp })
+            .eq('id', message.id)
+            .catch(err => console.error('Error auto-marking delivered message:', err))
+        }
+
         setThreads(prev => {
           const idx = prev.findIndex(t => t.id === threadId)
           if (idx === -1) return prev
