@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react'
 import styles from '../styles/Chat.module.css'
 import dmStyles from '../styles/DirectMessages.module.css'
 import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
@@ -647,6 +647,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
     if (data) {
       setDmMessages(prev => prev.map(m => m.id === tempId ? data : m))
+      notifyRecipient(data)
     }
     return data
   }
@@ -750,6 +751,71 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     return 'sent'
   }
 
+  const notifyRecipient = useCallback(async (message) => {
+    if (!message || message.sender_id !== myUserId) return
+    const targetUserId = otherUserId
+    if (!targetUserId) return
+
+    let otherUser = usersMap[targetUserId]
+
+    if (!otherUser?.email) {
+      try {
+        const { data, error } = await supabase
+          .from('user')
+          .select('username, email')
+          .eq('id', targetUserId)
+          .single()
+
+        if (error) {
+          console.error('Failed to lookup recipient email:', error)
+        } else if (data) {
+          otherUser = { ...otherUser, ...data }
+          setUsersMap(prev => ({
+            ...prev,
+            [targetUserId]: otherUser
+          }))
+        }
+      } catch (error) {
+        console.error('Failed to fetch recipient email:', error)
+      }
+    }
+
+    const recipientEmail = otherUser?.email
+    if (!recipientEmail) return
+
+    const senderName = currentUser?.username
+      || session?.user?.email?.split('@')[0]
+      || 'مستخدم'
+
+    const recipientName = otherUser?.username
+      || recipientEmail.split('@')[0]
+
+    const messagePreview = getMessagePreview(message)
+
+    try {
+      const response = await fetch('/api/notify-direct-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipientEmail,
+          recipientName,
+          senderName,
+          messagePreview,
+          threadId: message.thread_id
+        })
+      })
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}))
+        console.error('Email notification failed', response.status, errorBody)
+      }
+    } catch (error) {
+      console.error('Failed to notify recipient via email:', error)
+    }
+  }, [currentUser?.username, session?.user?.email, usersMap, otherUserId, myUserId, supabase])
+
   const formatTime = (timestamp) => {
     if (!timestamp) return ''
     const date = new Date(timestamp)
@@ -807,11 +873,15 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
         if (message.sender_id !== myUserId && !message.delivered_at && !deliveredMarkedRef.current.has(message.id)) {
           const timestamp = new Date().toISOString()
           deliveredMarkedRef.current.add(message.id)
-          supabase
-            .from('direct_message')
-            .update({ delivered_at: timestamp })
-            .eq('id', message.id)
-            .catch(err => console.error('Error auto-marking delivered message:', err))
+          ;(async () => {
+            const { error } = await supabase
+              .from('direct_message')
+              .update({ delivered_at: timestamp })
+              .eq('id', message.id)
+            if (error) {
+              console.error('Error auto-marking delivered message:', error)
+            }
+          })()
         }
 
         setThreads(prev => {
