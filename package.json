@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.91.0",
     "nodemailer": "^6.9.11",
     "next": "^16.0.1",
     "react": "^18.2.0",
