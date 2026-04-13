@@ -1,48 +1,57 @@
-/* Design tokens — dark editorial + teal accent (skills: intentional aesthetic, non-generic SaaS purple) */
+/* UI/UX Pro Max Design Tokens - Elite Elegance */
 :root {
-  --bg-deep: #070b12;
-  --bg-mid: #0c1220;
-  --bg-elevated: rgba(18, 26, 42, 0.72);
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --bg-glass-strong: rgba(255, 255, 255, 0.07);
+  /* Backgrounds: Deep space and glass surfaces */
+  --bg-deep: #030712; /* Tailwind gray-950 equivalent */
+  --bg-mid: #0f172a; /* Tailwind slate-900 */
+  --bg-elevated: rgba(15, 23, 42, 0.7);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-glass-strong: rgba(255, 255, 255, 0.08);
+  --bg-glass-hover: rgba(255, 255, 255, 0.12);
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(129, 140, 248, 0.5); /* Indigo glow */
 
-  --text-primary: #e8edf5;
-  --text-muted: #8b9bb8;
-  --text-faint: #5c6b86;
+  /* Text Colors */
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-faint: #475569;
 
-  --accent: #2dd4bf;
-  --accent-dim: rgba(45, 212, 191, 0.14);
-  --accent-strong: #14b8a6;
-  --accent-glow: rgba(45, 212, 191, 0.35);
+  /* Accents - Tech Indigo */
+  --accent: #6366f1; /* Indigo-500 */
+  --accent-dim: rgba(99, 102, 241, 0.15);
+  --accent-strong: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  
+  --success: #10b981;
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
 
-  --danger: #fb7185;
-  --danger-bg: rgba(251, 113, 133, 0.12);
+  /* Shadows - Smooth Elevation */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 25px var(--accent-glow);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 60px var(--accent-glow);
-
-  --radius-sm: 10px;
+  /* Border Radii - Rounded Soft */
+  --radius-sm: 8px;
   --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-full: 999px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
 
-  --sidebar-w: 280px;
+  /* Layout */
+  --sidebar-w: 300px;
+  
+  /* Chat specific */
+  --chat-accent: #6366f1;
+  --chat-accent-soft: rgba(99, 102, 241, 0.15);
+  --chat-surface: #0a0f1d;
+  --chat-bubble-own: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --chat-bubble-other: rgba(255, 255, 255, 0.05);
+  --chat-input-bar: rgba(3, 7, 18, 0.85);
 
-  /* Shared chat surfaces (used from CSS modules via var) */
-  --chat-accent: #14b8a6;
-  --chat-accent-soft: rgba(20, 184, 166, 0.18);
-  --chat-surface: #0a101c;
-  --chat-bubble-own: linear-gradient(
-    135deg,
-    rgba(45, 212, 191, 0.22) 0%,
-    rgba(20, 184, 166, 0.12) 100%
-  );
-  --chat-bubble-other: rgba(255, 255, 255, 0.06);
-  --chat-input-bar: rgba(12, 18, 32, 0.92);
+  /* Framer Motion standard transition duration */
+  --transit-time: 0.3s;
 }
 
 html,
