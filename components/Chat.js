@@ -5,9 +5,10 @@ import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
 import PendingAudioPreview from './PendingAudioPreview'
 import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, CheckIcon, WaveIcon, SendIcon } from './Icons'
-
+import useTranslation from '../utils/useTranslation'
 
 const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
+    const { t } = useTranslation()
     if (!currentUser) return null
     const [messages, setMessages] = useState([])
     const [editingUsername, setEditingUsername] = useState(false)
@@ -632,12 +633,12 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
             <div className={styles.headerText}>
-                <h1>محادثة فورية</h1>
+                <h1>{t.publicChat}</h1>
                 <p className={styles.headerUser}>
-                    مرحباً، {currentUser.username || session.user.email}
+                    {t.authIntro.split(' ')[0]}، {currentUser.username || session.user.email}
                     <span className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
                         <span className={`${styles.statusDot} ${isConnected ? styles.statusDotOnline : styles.statusDotOffline}`} aria-hidden="true"></span>
-                        {isConnected ? 'متصل' : 'غير متصل'}
+                        {isConnected ? t.online : t.offline}
                     </span>
                 </p>
             </div>
@@ -652,23 +653,23 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                             ref={newUsername}
                             defaultValue={currentUser.username || ''}
                         />
-                        <button className={styles.btnnn} type="submit">تحديث</button>
+                        <button className={styles.btnnn} type="submit">{t.save}</button>
                         <button 
                             className={styles.btnnn} 
                             type="button"
                             onClick={() => setEditingUsername(false)}
                             style={{ marginLeft: '5px' }}
                         >
-                            إلغاء
+                            {t.cancelReply.split(' ')[0]}
                         </button>
                     </form>
                 ) : (
                     <div>
                         <button className={styles.btn} onClick={() => setEditingUsername(true)}>
-                            تعديل الاسم
+                            {t.usernameOptional}
                         </button>
                         <button className={styles.btnn} onClick={evt => logout(evt)}>
-                            تسجيل الخروج
+                            {t.logout}
                         </button>
                     </div>
                 )}
@@ -694,9 +695,12 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     const fileType = msg.file_type
 
                     return (
-                        <div 
+                        <motion.div 
                             key={msg.id} 
                             className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}
+                            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                         >
                             {!isOwnMessage && (
                                 <button
@@ -767,7 +771,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                 </div>
             )}
                             </div>
-                        </div>
+                        </motion.div>
                     )
                 })
             )}
@@ -897,7 +901,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
             <input 
                 className={styles.messageInput} 
                 type="text" 
-                placeholder={hasPendingFiles ? "أضف رسالة..." : isRecording ? "جاري التسجيل..." : "اكتب رسالتك هنا..."}
+                placeholder={hasPendingFiles ? t.typeMessage : isRecording ? t.recording : t.typeMessage}
                 ref={message}
                 disabled={uploadingFile || isRecording || hasPendingAudio}
             />
