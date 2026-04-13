@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import styles from '../styles/Profile.module.css'
+import useTranslation from '../utils/useTranslation'
 
 const Profile = ({ currentUser, session, supabase, onBack }) => {
+  const { t } = useTranslation()
   const [editingUsername, setEditingUsername] = useState(false)
   const [newUsername, setNewUsername] = useState(currentUser?.username || '')
   const [loading, setLoading] = useState(false)
@@ -25,13 +27,13 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
 
       if (error) throw error
 
-      setMessage({ type: 'success', text: 'تم تحديث الاسم بنجاح!' })
+      setMessage({ type: 'success', text: t.statusUpdated })
       setEditingUsername(false)
       window.location.reload()
     } catch (error) {
       setMessage({
         type: 'error',
-        text: error.message || 'حدث خطأ أثناء التحديث',
+        text: error.message || t.errorAuth,
       })
     } finally {
       setLoading(false)
@@ -61,7 +63,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
           >
             ←
           </motion.button>
-          <h1 className={styles.title}>الملف الشخصي</h1>
+          <h1 className={styles.title}>{t.profile}</h1>
         </div>
 
         <div className={styles.avatar}>
@@ -70,7 +72,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
 
         <div className={styles.identity}>
           <h2 className={styles.name}>
-            {currentUser?.username || 'بدون اسم'}
+            {currentUser?.username || t.unnamed}
           </h2>
           <p className={styles.email}>{session?.user?.email}</p>
         </div>
@@ -88,7 +90,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
         {editingUsername ? (
           <form onSubmit={updateUsername}>
             <label className={styles.fieldLabel} htmlFor="username">
-              اسم المستخدم
+              {t.username}
             </label>
             <input
               id="username"
@@ -106,7 +108,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
                 disabled={loading}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
               >
-                {loading ? 'جاري الحفظ...' : 'حفظ'}
+                {loading ? t.loading : t.save}
               </motion.button>
               <button
                 type="button"
@@ -117,7 +119,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
                   setMessage({ type: '', text: '' })
                 }}
               >
-                إلغاء
+                {t.cancelReply.split(' ')[0]} {/* "Cancel" */}
               </button>
             </div>
           </form>
@@ -129,7 +131,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >
-            تعديل اسم المستخدم
+            {t.usernameOptional}
           </motion.button>
         )}
 
@@ -140,7 +142,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
             onClick={logout}
             whileTap={{ scale: 0.99 }}
           >
-            تسجيل الخروج
+            {t.logout}
           </motion.button>
         </div>
       </motion.div>
