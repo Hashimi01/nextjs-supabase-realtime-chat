@@ -1,0 +1,40 @@
+name: Update NPM Packages
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Runs at 00:00 every Monday
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+jobs:
+  update-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Update Packages
+        run: |
+          npm update
+          npm audit fix || true
+
+      - name: Commit and Push Changes
+        run: |
+          # Use github-actions bot or specific user
+          git config --global user.name "GitHub Actions Auto Update"
+          git config --global user.email "actions@github.com"
+          
+          git add package.json package-lock.json
+          
+          # Only commit and push if there are changes
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore(deps): auto-update npm packages"
+            git push
+          else
+            echo "No package updates found."
+          fi
