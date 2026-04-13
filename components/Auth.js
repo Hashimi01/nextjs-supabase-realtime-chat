@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import styles from '../styles/Auth.module.css'
+import useTranslation from '../utils/useTranslation'
 
 const Auth = ({ supabase }) => {
+  const { t } = useTranslation()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -59,18 +61,19 @@ const Auth = ({ supabase }) => {
     <div className={styles.container}>
       <motion.div
         className={styles.authCard}
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 30, scale: 0.95, filter: 'blur(10px)' }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <h2 className={styles.title}>
-          {isSignUp ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}
+          {isSignUp ? t.register : t.login}
         </h2>
+        <p className={styles.subtitle}>{t.authSub}</p>
 
         <form onSubmit={handleAuth} className={styles.form}>
           <div className={styles.inputGroup}>
             <label htmlFor="email" className={styles.label}>
-              البريد الإلكتروني
+              {t.emailPlaceholder}
             </label>
             <input
               id="email"
@@ -86,7 +89,7 @@ const Auth = ({ supabase }) => {
 
           <div className={styles.inputGroup}>
             <label htmlFor="password" className={styles.label}>
-              كلمة المرور
+              {t.passwordPlaceholder}
             </label>
             <input
               id="password"
@@ -101,16 +104,19 @@ const Auth = ({ supabase }) => {
             />
           </div>
 
-          {message.text && (
-            <motion.div
-              className={`${styles.message} ${styles[message.type]}`}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ duration: 0.22 }}
-            >
-              {message.text}
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {message.text && (
+              <motion.div
+                className={`${styles.message} ${styles[message.type]}`}
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {message.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.button
             type="submit"
@@ -120,10 +126,10 @@ const Auth = ({ supabase }) => {
             whileTap={{ scale: loading ? 1 : 0.99 }}
           >
             {loading
-              ? 'جاري المعالجة...'
+              ? isSignUp ? t.registering : t.loggingIn
               : isSignUp
-                ? 'إنشاء حساب'
-                : 'تسجيل الدخول'}
+                ? t.register
+                : t.login}
           </motion.button>
         </form>
 
@@ -140,7 +146,7 @@ const Auth = ({ supabase }) => {
             className={styles.switchButton}
             disabled={loading}
           >
-            {isSignUp ? 'تسجيل الدخول' : 'إنشاء حساب'}
+            {isSignUp ? t.login : t.register}
           </button>
         </div>
       </motion.div>
