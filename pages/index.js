@@ -6,7 +6,7 @@ import Auth from '../components/Auth'
 import Chat from '../components/Chat'
 import DirectMessages from '../components/DirectMessages'
 import Profile from '../components/Profile'
-
+import useTranslation from '../utils/useTranslation'
 import { useEffect, useRef, useState } from 'react'
 
 const tabTransition = {
@@ -15,6 +15,7 @@ const tabTransition = {
 }
 
 export default function Home({ currentUser, session, supabase }) {
+  const { t, locale, toggleLanguage } = useTranslation()
   const [loggedIn, setLoggedIn] = useState(false)
   const [tab, setTab] = useState('public')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -134,8 +135,17 @@ export default function Home({ currentUser, session, supabase }) {
             className={`${sidebarStyles.sidebar} ${sidebarOpen ? sidebarStyles.open : ''} ${!sidebarOpen && isDesktop ? sidebarStyles.closed : ''}`}
           >
             <div className={sidebarStyles.sidebarHeader}>
-              <h2>التنقّل</h2>
-              <p>مساحة دردشة موحّدة وسريعة</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>{t.navigation}</h2>
+                <button 
+                  onClick={toggleLanguage}
+                  className={sidebarStyles.langToggle}
+                  title={t.language}
+                >
+                  {locale === 'ar' ? 'EN' : 'عربي'}
+                </button>
+              </div>
+              <p>{t.workspaceSub}</p>
             </div>
 
             <div className={sidebarStyles.navItems}>
@@ -147,7 +157,7 @@ export default function Home({ currentUser, session, supabase }) {
                 }}
               >
                 <div className={sidebarStyles.navItemIcon}>💬</div>
-                <div className={sidebarStyles.navItemText}>المحادثة العامة</div>
+                <div className={sidebarStyles.navItemText}>{t.publicChat}</div>
               </div>
 
               <div
@@ -158,7 +168,7 @@ export default function Home({ currentUser, session, supabase }) {
                 }}
               >
                 <div className={sidebarStyles.navItemIcon}>✉️</div>
-                <div className={sidebarStyles.navItemText}>الرسائل الخاصة</div>
+                <div className={sidebarStyles.navItemText}>{t.privateMessages}</div>
               </div>
 
               <div
@@ -169,14 +179,14 @@ export default function Home({ currentUser, session, supabase }) {
                 }}
               >
                 <div className={sidebarStyles.navItemIcon}>👤</div>
-                <div className={sidebarStyles.navItemText}>الملف الشخصي</div>
+                <div className={sidebarStyles.navItemText}>{t.profile}</div>
               </div>
             </div>
 
             <div className={sidebarStyles.userInfo}>
               <div className={sidebarStyles.userAvatar}>{getAvatarLetter()}</div>
               <div className={sidebarStyles.userName}>
-                {currentUser?.username || 'بدون اسم'}
+                {currentUser?.username || t.unnamed}
               </div>
               <div className={sidebarStyles.userEmail}>{session?.user?.email}</div>
             </div>
@@ -187,7 +197,7 @@ export default function Home({ currentUser, session, supabase }) {
             className={sidebarStyles.sidebarToggle}
             onClick={() => setSidebarOpen(!sidebarOpen)}
             whileTap={{ scale: 0.94 }}
-            aria-label={sidebarOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+            aria-label={sidebarOpen ? t.closeMenu : t.openMenu}
           >
             {sidebarOpen ? '✕' : '☰'}
           </motion.button>
