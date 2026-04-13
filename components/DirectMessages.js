@@ -5,8 +5,11 @@ import { uploadFile as uploadFileUtil } from '../utils/fileUpload'
 import AudioPlayer from './AudioPlayer'
 import PendingAudioPreview from './PendingAudioPreview'
 import { PaperclipIcon, MicIcon, StopIcon, CloseIcon, SingleTickIcon, DoubleTickIcon, SendIcon } from './Icons'
+import useTranslation from '../utils/useTranslation'
+import { motion } from 'framer-motion'
 
 const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
+  const { t } = useTranslation()
   if (!session?.user?.id) return null
 
   const [query, setQuery] = useState('')
@@ -930,12 +933,12 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
       {/* Sidebar */}
       <div className={dmStyles.sidebar} style={{ display: showSidebar ? 'flex' : 'none' }}>
         <div className={dmStyles.sidebarHeader}>
-          <h2 className={dmStyles.sidebarTitle}>المحادثات</h2>
+          <h2 className={dmStyles.sidebarTitle}>{t.privateMessages}</h2>
           <div style={{ position: 'relative' }}>
             <input
               className={dmStyles.searchBox}
               type="text"
-              placeholder="ابحث عن مستخدم..."
+              placeholder={t.searchUser}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -968,7 +971,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
         <div className={dmStyles.threadsList}>
           {threadsWithLastMessage.length === 0 ? (
             <div className={dmStyles.emptyThreads}>
-              لا توجد محادثات. ابحث عن مستخدم لبدء محادثة جديدة
+              {t.noActiveChats}
             </div>
           ) : (
             threadsWithLastMessage.map(thread => {
@@ -1029,7 +1032,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                     <p className={dmStyles.chatHeaderStatus}>
                       <span className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
                         <span className={`${styles.statusDot} ${isConnected ? styles.statusDotOnline : styles.statusDotOffline}`} aria-hidden="true"></span>
-                        {isConnected ? 'متصل' : 'غير متصل'}
+                        {isConnected ? t.online : t.offline}
                       </span>
                     </p>
                   </div>
@@ -1058,7 +1061,13 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                   <SingleTickIcon size={16} />
 
                 return (
-                  <div key={m.id} className={`${styles.messageWrapper} ${isOwn(m) ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}>
+                  <motion.div 
+                    key={m.id} 
+                    className={`${styles.messageWrapper} ${isOwn(m) ? styles.ownMessageWrapper : styles.otherMessageWrapper}`}
+                    initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  >
                     <div className={`${styles.messageBubble} ${isOwn(m) ? styles.ownMessage : styles.otherMessage} ${m.uploading ? styles.uploadingBubble : ''}`}>
                       {fileUrl && (
                         <div className={styles.messageFile}>
@@ -1120,7 +1129,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
               <div ref={messagesEndRef} />
@@ -1242,12 +1251,19 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                 ref={inputRef}
                 className={styles.messageInput}
                 type="text"
-                placeholder={hasPendingFiles ? "أضف رسالة..." : isRecording ? "جاري التسجيل..." : "اكتب رسالتك هنا..."}
+                placeholder={hasPendingFiles ? t.typeMessage : isRecording ? t.recording : t.typeMessage}
                 disabled={uploadingFile || isRecording || hasPendingAudio}
               />
-              <button className={styles.submit} type="submit" aria-label="إرسال" disabled={uploadingFile || isRecording}>
+              <motion.button 
+                className={styles.submit} 
+                type="submit" 
+                aria-label="إرسال" 
+                disabled={uploadingFile || isRecording}
+                whileHover={{ scale: uploadingFile || isRecording ? 1 : 1.06 }}
+                whileTap={{ scale: uploadingFile || isRecording ? 1 : 0.94 }}
+              >
                 <SendIcon size={20} />
-              </button>
+              </motion.button>
             </form>
             {previewMedia && (
               <div className={styles.mediaPreviewOverlay} onClick={() => setPreviewMedia(null)}>
@@ -1272,7 +1288,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
         {!currentThread && (
           <div className={dmStyles.emptyChat}>
-            اختر محادثة من القائمة للبدء
+            {t.startChat}
           </div>
         )}
       </div>
