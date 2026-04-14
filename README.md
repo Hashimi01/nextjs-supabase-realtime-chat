@@ -63,8 +63,8 @@ Identify the underlying system requirements you need to install and configure:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/realtime-chat-workspace.git
-   cd realtime-chat-workspace
+   git clone https://github.com/Hashimi01/chat.git
+   cd chat
    ```
 
 2. **Install dependencies:**
