@@ -1,30 +1,44 @@
-# مثال على ملف .env.local
+# Environment Variables Guide
 
-## متغيرات Cloudinary (للـ Frontend)
+Copy these variable names into your `.env.local` file and fill in your own values.
+Never commit `.env.local` to version control.
+
+## Supabase (required)
 
 ```env
-# Cloudinary Configuration
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=die1pk3gb
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=ml_default
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+NEXT_PUBLIC_SITE_URL=https://your-app-domain.com
 ```
 
-## ⚠️ ملاحظات مهمة:
+## SMTP / Email Notifications (optional)
 
-1. **لا تضع API Secret في Frontend**:
-   - ❌ `CLOUDINARY_API_SECRET=Mq84bQKMJ0kFe4uhrka_iXdy7ds` - لا تضع هذا في Frontend!
-   - ❌ `NEXT_PUBLIC_CLOUDINARY_API_KEY=352153168323658` - لا نحتاجه للـ unsigned uploads
+Used by the `/api/notify-direct-message` endpoint to send email alerts for new DMs.
 
-2. **ما نحتاجه فقط**:
-   - ✅ `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=die1pk3gb` - Cloud Name
-   - ✅ `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=ml_default` - اسم الـ preset
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-email-app-password
+SMTP_FROM=Your App Name <your-email@example.com>
+```
 
-3. **API Secret يستخدم فقط في Backend** (للملفات الحساسة أو Signed uploads)
+## Cloudinary – File & Audio Uploads (optional)
 
-## إعداد Upload Preset في Cloudinary
+Only the cloud name and an unsigned upload preset are needed on the frontend.
+Never expose the API Secret or API Key in frontend environment variables.
 
-بعد الحصول على هذه القيم، يجب:
+```env
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-unsigned-preset-name
+```
 
-1. الذهاب إلى Cloudinary Dashboard
-2. إنشاء أو تعديل preset `ml_default`
-3. تفعيل "Allow unsigned uploads"
+> **Tip:** Create an unsigned upload preset in the Cloudinary Dashboard under
+> Settings → Upload → Upload Presets, then enable "Unsigned uploading".
 
+## Notes
+
+- All `NEXT_PUBLIC_*` variables are bundled into the client-side JavaScript and are
+  visible to anyone who views the page source. Only put non-sensitive config there.
+- `SMTP_PASS` and any secret keys must **never** use the `NEXT_PUBLIC_` prefix.
+- After changing credentials in Supabase or Cloudinary, restart the dev server.
