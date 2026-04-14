@@ -126,7 +126,3 @@ Please make sure to review our `.eslintrc.json` rules before committing.
 
 This project is distributed under the underlying MIT License. For further information, strictly consult the [LICENSE](LICENSE) file located centrally within the directory.
 
----
-<div align="center">
-  <b>Built with ❤️ by the open-source community.</b>
-</div>
