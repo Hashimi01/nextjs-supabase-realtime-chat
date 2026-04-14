@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/SIDATY/DEWAA/Real-Time-Chat-Supabase-NextJs -type f \\\\\\( -name \"*.js\" -o -name \"*.jsx\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\" -o -name \"*.md\" \\\\\\) ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" ! -path \"*/.git/*\" -exec grep -l \"sk_\\\\|pk_\\\\|password\\\\|token\" {} \\\\;)",
+      "Bash(wc -l /d/SIDATY/DEWAA/Real-Time-Chat-Supabase-NextJs/components/*.js /d/SIDATY/DEWAA/Real-Time-Chat-Supabase-NextJs/utils/*.js)",
+      "Bash(grep -i \"supabase\\\\|cloudinary\" /d/SIDATY/DEWAA/Real-Time-Chat-Supabase-NextJs/*.md)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node_modules/.bin/next lint:*)"
+    ]
+  }
+}
