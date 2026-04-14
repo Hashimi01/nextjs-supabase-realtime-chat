@@ -26,7 +26,7 @@ const uploadToCloudinary = async (file, cloudName, uploadPreset) => {
   try {
     // Check file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      throw new Error('حجم الملف كبير جداً. الحد الأقصى 10 MB')
+      throw new Error('File size too large. Maximum is 10 MB')
     }
 
     const formData = new FormData()
@@ -53,11 +53,11 @@ const uploadToCloudinary = async (file, cloudName, uploadPreset) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMsg = errorData.error?.message || 'فشل رفع الملف إلى Cloudinary'
+      const errorMsg = errorData.error?.message || 'Failed to upload file to Cloudinary'
       
       // Provide helpful error messages
       if (errorMsg.includes('whitelisted') || errorMsg.includes('unsigned')) {
-        throw new Error('Preset غير مفعّل للـ Unsigned uploads. اذهب إلى Cloudinary Dashboard → Settings → Upload → preset ml_default → فعّل "Allow unsigned uploads"')
+        throw new Error('Preset not enabled for Unsigned uploads. Go to Cloudinary Dashboard → Settings → Upload → preset ml_default → enable "Allow unsigned uploads"')
       }
       
       throw new Error(errorMsg)
@@ -91,7 +91,7 @@ const uploadToCloudinary = async (file, cloudName, uploadPreset) => {
  */
 const uploadToSupabase = async (file, userId, supabase) => {
   if (!supabase) {
-    throw new Error('Supabase client غير متاح')
+    throw new Error('Supabase client not available')
   }
 
   // Get file extension more safely
@@ -120,7 +120,7 @@ const uploadToSupabase = async (file, userId, supabase) => {
   try {
     // Check if file has content
     if (!file.size || file.size === 0) {
-      throw new Error('الملف فارغ')
+      throw new Error('File is empty')
     }
 
     const { data, error } = await supabase.storage
@@ -133,9 +133,9 @@ const uploadToSupabase = async (file, userId, supabase) => {
     if (error) {
       console.error('Storage upload error:', error)
       if (error.message?.includes('new row violates row-level security')) {
-        throw new Error('خطأ في الصلاحيات. يرجى التحقق من Storage Policies')
+        throw new Error('Permission error. Please check Storage Policies')
       } else if (error.message?.includes('Bucket not found')) {
-        throw new Error('Bucket غير موجود. يرجى إنشاء bucket "chat-files" في Supabase أو استخدام Cloudinary')
+        throw new Error('Bucket not found. Please create bucket "chat-files" in Supabase or use Cloudinary')
       } else {
         throw error
       }

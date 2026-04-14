@@ -142,7 +142,7 @@ export default function Home({ currentUser, session, supabase }) {
                   className={sidebarStyles.langToggle}
                   title={t.language}
                 >
-                  {locale === 'ar' ? 'EN' : 'عربي'}
+                  {locale === 'ar' ? 'EN' : 'AR'}
                 </button>
               </div>
               <p>{t.workspaceSub}</p>
