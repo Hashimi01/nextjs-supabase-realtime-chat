@@ -80,7 +80,7 @@ const PendingAudioPreview = ({ file, onRemove }) => {
           audioRef.current?.pause()
           onRemove()
         }}
-        aria-label="إزالة التسجيل"
+        aria-label="Remove recording"
       >
         <CloseIcon size={14} />
       </button>
@@ -90,7 +90,7 @@ const PendingAudioPreview = ({ file, onRemove }) => {
           type="button"
           className={styles.pendingAudioPlay}
           onClick={togglePlayback}
-          aria-label={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
         </button>

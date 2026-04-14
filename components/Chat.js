@@ -225,12 +225,12 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
         try {
             // Check file size (10MB limit)
             if (file.size > 10 * 1024 * 1024) {
-                throw new Error('حجم الملف كبير جداً. الحد الأقصى 10 MB')
+                throw new Error('File size too large. Maximum is 10 MB')
             }
 
             // Check if file has content
             if (!file.size || file.size === 0) {
-                throw new Error('الملف فارغ')
+                throw new Error('File is empty')
             }
 
             const fileInfo = await uploadFileUtil(file, session.user.id, supabase)
@@ -240,7 +240,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
         } catch (error) {
             console.error('Error uploading file:', error)
             setUploadingFile(false)
-            const errorMsg = error.message || 'فشل رفع الملف. يرجى التحقق من الاتصال وإعدادات الرفع.'
+            const errorMsg = error.message || 'Failed to upload file. Please check connection and settings.'
             alert(`❌ ${errorMsg}`)
             return null
         }
@@ -254,7 +254,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
 
         files.forEach((file, index) => {
             if (file.size > 10 * 1024 * 1024) {
-                alert(`❌ الملف "${file.name}" يتجاوز الحد الأقصى 10 MB`)
+                alert(`❌ File "${file.name}" exceeds maximum size of 10 MB`)
                 return
             }
 
@@ -395,7 +395,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
             setIsRecording(true)
         } catch (error) {
             console.error('Error starting recording:', error)
-            alert('❌ لا يمكن الوصول إلى الميكروفون. يرجى التحقق من الصلاحيات.')
+            alert('❌ Cannot access microphone. Please check permissions.')
         }
     }
 
@@ -419,7 +419,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
         if (!content && !fileInfo) return
 
         if (!isConnected) {
-            alert('⚠️ غير متصل بالإنترنت. يرجى المحاولة مرة أخرى.')
+            alert('⚠️ You are offline. Please try again.')
             return
         }
 
@@ -471,7 +471,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
         if (error) {
             console.error('Error sending message:', error)
             setMessages(previous => previous.filter(msg => msg.id !== tempId))
-            alert('❌ فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.')
+            alert('❌ Failed to send the message. Please try again.')
             if (!existingTempId && message.current) message.current.value = content
             return null
         } else {
@@ -532,7 +532,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     }
                 } else {
                     setMessages(previous => previous.filter(msg => msg.id !== tempId))
-                    alert(`❌ فشل رفع الملف "${entry.name}". يرجى المحاولة مرة أخرى.`)
+                    alert(`❌ Failed to upload file "${entry.name}". Please try again.`)
                 }
             }
 
@@ -573,19 +573,19 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
 
 
     const username = user_id => {
-        if (!user_id) return "مجهول"
+        if (!user_id) return "Anonymous"
         const user = users[user_id]
-        if (!user) return session?.user?.email?.split('@')[0] || "مستخدم"
+        if (!user) return session?.user?.email?.split('@')[0] || "User"
         if (user.username) return user.username
         if (user.email) return user.email.split('@')[0]
-        return session?.user?.email?.split('@')[0] || "مستخدم"
+        return session?.user?.email?.split('@')[0] || "User"
     }
 
     const getInitials = (user_id) => {
         const user = users[user_id]
         const nameSource = user?.username || user?.email || user_id || ''
         const cleaned = nameSource.replace(/[^\p{L}\p{N} ]+/gu, '').trim()
-        if (!cleaned) return '؟'
+        if (!cleaned) return '?'
         const parts = cleaned.split(/\s+/).filter(Boolean)
         if (parts.length === 1) {
             return parts[0].slice(0, 2).toUpperCase()
@@ -603,7 +603,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
         const date = new Date(timestamp)
         const hours = date.getHours()
         const minutes = date.getMinutes()
-        const ampm = hours >= 12 ? 'م' : 'ص'
+        const ampm = hours >= 12 ? 'PM' : 'AM'
         const displayHours = hours % 12 || 12
         return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
     }
@@ -648,7 +648,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     <form onSubmit={setUsername}>
                         <input 
                             className={styles.updateUser} 
-                            placeholder="اسم المستخدم الجديد" 
+                            placeholder="New username"
                             required 
                             ref={newUsername}
                             defaultValue={currentUser.username || ''}
@@ -680,7 +680,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                 <div className={styles.emptyState}>
                     <p>
                         <WaveIcon size={20} className={styles.emptyStateIcon} />
-                        لا توجد رسائل بعد. كن أول من يرسل رسالة!
+                        No messages yet. Be the first to send a message!
                     </p>
                 </div>
             ) : (
@@ -707,7 +707,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                     type="button"
                                     className={styles.messageAvatar}
                                     onClick={() => onOpenDirectMessages?.(msg.user_id)}
-                                    title="فتح الدردشة الخاصة"
+                                    title="Open direct message"
                                 >
                                     {getInitials(msg.user_id)}
                                 </button>
@@ -719,12 +719,12 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                             <button
                                                 type="button"
                                                 className={styles.messageImageButton}
-                                                onClick={() => !msg.uploading && setPreviewMedia({ url: fileUrl, name: msg.file_name || 'صورة' })}
+                                                onClick={() => !msg.uploading && setPreviewMedia({ url: fileUrl, name: msg.file_name || 'Image' })}
                                                 disabled={msg.uploading}
                                             >
                                                 <img 
                                                     src={fileUrl} 
-                                                    alt={msg.file_name || 'صورة'}
+                                                    alt={msg.file_name || 'Image'}
                                                     className={styles.messageImage}
                                                 />
                                             </button>
@@ -746,14 +746,14 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                                 }}
                                             >
                                                 <PaperclipIcon size={16} className={styles.messageFileLinkIcon} />
-                                                {msg.file_name || 'ملف'}
+                                                {msg.file_name || 'File'}
                                             </a>
                                         )}
                                     </div>
                                 )}
                                 {msg.content && 
-                                 !(msg.file_type?.startsWith('audio/') && (msg.content === '🎤 رسالة صوتية' || msg.content === '')) &&
-                                 !(msg.file_url && !msg.file_type?.startsWith('audio/') && !msg.file_type?.startsWith('image/') && (msg.content === '📎 ملف' || msg.content === '')) ? (
+                                 !(msg.file_type?.startsWith('audio/') && (msg.content === '🎤 Voice message' || msg.content === '🎤 رسالة صوتية' || msg.content === '')) &&
+                                 !(msg.file_url && !msg.file_type?.startsWith('audio/') && !msg.file_type?.startsWith('image/') && (msg.content === '📎 File' || msg.content === '📎 ملف' || msg.content === '')) ? (
                                     <div className={styles.messageText}>
                                         {msg.content}
                                     </div>
@@ -761,7 +761,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                 {msg.uploading && (
                                     <div className={styles.uploadingStatus}>
                                         <span className={styles.uploadingSpinner}></span>
-                                        جاري الرفع...
+                                        Uploading...
                                     </div>
                                 )}
                                 {showTime && (
@@ -799,7 +799,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                         type="button"
                                         className={styles.pendingAttachmentRemove}
                                         onClick={() => removePendingFile(file.id)}
-                                        aria-label="إزالة المرفق"
+                                        aria-label="Remove attachment"
                                     >
                                         <CloseIcon size={14} />
                                     </button>
@@ -819,7 +819,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                                             <input
                                                 type="text"
                                                 className={styles.pendingCaptionInput}
-                                                placeholder="أضف تعليقاً"
+                                                placeholder="Add a caption"
                                                 value={file.caption}
                                                 onChange={(e) => updatePendingFileCaption(file.id, e.target.value)}
                                             />
@@ -836,7 +836,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                 </div>
                 {hasPendingAudio && (
                     <div className={styles.pendingNotice}>
-                        سيتم إرسال التسجيل الصوتي فقط. أرسل أو احذف التسجيل لمتابعة الكتابة.
+                        Only the audio recording will be sent. Send or delete the recording to continue typing.
                     </div>
                 )}
             </div>
@@ -862,7 +862,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     onClick={() => fileInputRef.current?.click()}
                     className={styles.attachButton}
                     disabled={uploadingFile}
-                    aria-label="إرفاق ملف"
+                    aria-label="Attach file"
                 >
                     {uploadingFile ? <span className={styles.buttonSpinner} aria-hidden="true"></span> : <PaperclipIcon size={20} />}
                 </button>
@@ -873,7 +873,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                     onClick={startRecording}
                     className={styles.recordButton}
                     disabled={uploadingFile}
-                    aria-label="تسجيل صوتي"
+                    aria-label="Voice record"
                 >
                     <MicIcon size={20} />
                 </button>
@@ -884,7 +884,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                         type="button"
                         onClick={stopRecording}
                         className={styles.stopRecordButton}
-                        aria-label="إيقاف التسجيل"
+                        aria-label="Stop recording"
                     >
                         <StopIcon size={18} />
                     </button>
@@ -892,7 +892,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                         type="button"
                         onClick={cancelRecording}
                         className={styles.cancelRecordButton}
-                        aria-label="إلغاء التسجيل"
+                        aria-label="Cancel recording"
                     >
                         <CloseIcon size={16} />
                     </button>
@@ -908,7 +908,7 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
             <motion.button
                 className={styles.submit}
                 type="submit"
-                aria-label="إرسال"
+                aria-label="Send"
                 disabled={uploadingFile || isRecording}
                 whileHover={{ scale: uploadingFile || isRecording ? 1 : 1.06 }}
                 whileTap={{ scale: uploadingFile || isRecording ? 1 : 0.94 }}
@@ -923,11 +923,11 @@ const Chat = ({ currentUser, session, supabase, onOpenDirectMessages }) => {
                         className={styles.mediaPreviewClose}
                         type="button"
                         onClick={() => setPreviewMedia(null)}
-                        aria-label="إغلاق المعاينة"
+                        aria-label="Close preview"
                     >
                         <CloseIcon size={18} />
                     </button>
-                    <img src={previewMedia.url} alt={previewMedia.name || 'صورة'} className={styles.mediaPreviewImage} />
+                    <img src={previewMedia.url} alt={previewMedia.name || 'Image'} className={styles.mediaPreviewImage} />
                     {previewMedia.name && (
                         <div className={styles.mediaPreviewCaption}>{previewMedia.name}</div>
                     )}

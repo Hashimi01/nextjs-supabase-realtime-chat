@@ -59,7 +59,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
             className={styles.back}
             onClick={onBack}
             whileTap={{ scale: 0.95 }}
-            aria-label="رجوع"
+            aria-label="Back"
           >
             ←
           </motion.button>
@@ -98,7 +98,7 @@ const Profile = ({ currentUser, session, supabase, onBack }) => {
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
               className={styles.fieldInput}
-              placeholder="أدخل اسم المستخدم"
+              placeholder="Enter username"
               required
             />
             <div className={styles.actions}>

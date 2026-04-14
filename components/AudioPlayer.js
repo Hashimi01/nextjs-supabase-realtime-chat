@@ -80,7 +80,7 @@ const AudioPlayer = ({ src, isOwn }) => {
       <button 
         className={styles.playButton} 
         onClick={togglePlay}
-        aria-label={isPlaying ? 'إيقاف' : 'تشغيل'}
+        aria-label={isPlaying ? 'Stop' : 'Play'}
       >
         {isPlaying ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

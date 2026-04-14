@@ -153,7 +153,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     return () => clearInterval(interval)
   }, [supabase, myUserId])
 
-  // Realtime new thread for me (so المستلم يرى المحادثة فوراً)
+  // Realtime new thread for me (so the recipient sees the conversation immediately)
   useEffect(() => {
     const ch = supabase
       .channel(`dm-threads:${myUserId}`)
@@ -409,12 +409,12 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     try {
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        throw new Error('حجم الملف كبير جداً. الحد الأقصى 10 MB')
+        throw new Error('File size too large. Maximum is 10 MB')
       }
 
       // Check if file has content
       if (!file.size || file.size === 0) {
-        throw new Error('الملف فارغ')
+        throw new Error('File is empty')
       }
 
       const fileInfo = await uploadFileUtil(file, myUserId, supabase)
@@ -424,7 +424,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     } catch (error) {
       console.error('Error uploading file:', error)
       setUploadingFile(false)
-      const errorMsg = error.message || 'فشل رفع الملف. يرجى التحقق من الاتصال وإعدادات الرفع.'
+      const errorMsg = error.message || 'Failed to upload file. Please check connection and settings.'
       alert(`❌ ${errorMsg}`)
       return null
     }
@@ -438,7 +438,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
     files.forEach((file, index) => {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`❌ الملف "${file.name}" يتجاوز الحد الأقصى 10 MB`)
+        alert(`❌ File "${file.name}" exceeds maximum size of 10 MB`)
         return
       }
 
@@ -569,7 +569,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
       setIsRecording(true)
     } catch (error) {
       console.error('Error starting recording:', error)
-      alert('❌ لا يمكن الوصول إلى الميكروفون. يرجى التحقق من الصلاحيات.')
+      alert('❌ Cannot access microphone. Please check permissions.')
     }
   }
 
@@ -644,7 +644,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     if (error) {
       setDmMessages(prev => prev.filter(m => m.id !== tempId))
       console.error('send dm error', error)
-      alert('❌ فشل إرسال الرسالة الخاصة. حاول مرة أخرى.')
+      alert('❌ Failed to send direct message. Try again.')
       return null
     }
 
@@ -706,7 +706,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
           }
         } else {
           setDmMessages(prev => prev.filter(m => m.id !== tempId))
-          alert(`❌ فشل رفع الملف "${entry.name}". يرجى المحاولة مرة أخرى.`)
+          alert(`❌ Failed to upload file "${entry.name}". Please try again.`)
         }
       }
 
@@ -726,10 +726,10 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
   const getDisplayName = (userId) => {
     const user = usersMap[userId]
-    if (!user) return userId?.substring(0, 8) || 'مستخدم'
+    if (!user) return userId?.substring(0, 8) || 'User'
     if (user.username) return user.username
     if (user.email) return user.email.split('@')[0]
-    return userId?.substring(0, 8) || 'مستخدم'
+    return userId?.substring(0, 8) || 'User'
   }
 
   const getAvatarLetter = (userId) => {
@@ -740,9 +740,9 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
   const getMessagePreview = (message) => {
     if (!message) return ''
-    if (message.file_type?.startsWith('audio/')) return '🎤 مقطع صوتي'
-    if (message.file_type?.startsWith('image/')) return message.content || '🖼️ صورة'
-    if (message.file_url && !message.content) return message.file_name || '📎 ملف'
+    if (message.file_type?.startsWith('audio/')) return '🎤 Audio clip'
+    if (message.file_type?.startsWith('image/')) return message.content || '🖼️ Image'
+    if (message.file_url && !message.content) return message.file_name || '📎 File'
     return message.content || ''
   }
 
@@ -788,7 +788,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
 
     const senderName = currentUser?.username
       || session?.user?.email?.split('@')[0]
-      || 'مستخدم'
+      || 'User'
 
     const recipientName = otherUser?.username
       || recipientEmail.split('@')[0]
@@ -799,7 +799,8 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
       const response = await fetch('/api/notify-direct-message', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           recipientEmail,
@@ -824,7 +825,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     const date = new Date(timestamp)
     const hours = date.getHours()
     const minutes = date.getMinutes()
-    const ampm = hours >= 12 ? 'م' : 'ص'
+    const ampm = hours >= 12 ? 'PM' : 'AM'
     const displayHours = hours % 12 || 12
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
   }
@@ -836,10 +837,10 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
     const diff = now - date
     const minutes = Math.floor(diff / 60000)
     
-    if (minutes < 1) return 'الآن'
-    if (minutes < 60) return `منذ ${minutes} دقيقة`
-    if (minutes < 1440) return `منذ ${Math.floor(minutes / 60)} ساعة`
-    return date.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes} mins ago`
+    if (minutes < 1440) return `${Math.floor(minutes / 60)} hours ago`
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
   }
 
   const hasPendingFiles = pendingFiles.length > 0
@@ -1020,7 +1021,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                   type="button"
                   className={dmStyles.backToggle}
                   onClick={() => setShowSidebar(true)}
-                  aria-label="عرض قائمة المحادثات"
+                  aria-label="View chat list"
                 >
                   ☰
                 </button>
@@ -1075,12 +1076,12 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                             <button
                               type="button"
                               className={styles.messageImageButton}
-                              onClick={() => !m.uploading && setPreviewMedia({ url: fileUrl, name: m.file_name || 'صورة' })}
+                              onClick={() => !m.uploading && setPreviewMedia({ url: fileUrl, name: m.file_name || 'Image' })}
                               disabled={m.uploading}
                             >
                               <img 
                                 src={fileUrl} 
-                                alt={m.file_name || 'صورة'}
+                                alt={m.file_name || 'Image'}
                                 className={styles.messageImage}
                               />
                             </button>
@@ -1102,20 +1103,20 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                               }}
                             >
                               <PaperclipIcon size={16} className={styles.messageFileLinkIcon} />
-                              {m.file_name || 'ملف'}
+                              {m.file_name || 'File'}
                             </a>
                           )}
                         </div>
                       )}
                       {m.content && 
-                       !(m.file_type?.startsWith('audio/') && (m.content === '🎤 رسالة صوتية' || m.content === '')) &&
-                       !(m.file_url && !m.file_type?.startsWith('audio/') && !m.file_type?.startsWith('image/') && (m.content === '📎 ملف' || m.content === '')) ? (
+                       !(m.file_type?.startsWith('audio/') && (m.content === '🎤 Voice message' || m.content === '🎤 رسالة صوتية' || m.content === '')) &&
+                       !(m.file_url && !m.file_type?.startsWith('audio/') && !m.file_type?.startsWith('image/') && (m.content === '📎 File' || m.content === '📎 ملف' || m.content === '')) ? (
                         <div className={styles.messageText}>{m.content}</div>
                       ) : null}
                       {m.uploading && (
                         <div className={styles.uploadingStatus}>
                           <span className={styles.uploadingSpinner}></span>
-                          جاري الرفع...
+                          Uploading...
                         </div>
                       )}
                       {showTime && (
@@ -1154,7 +1155,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                           type="button"
                           className={styles.pendingAttachmentRemove}
                           onClick={() => removePendingFile(file.id)}
-                          aria-label="إزالة المرفق"
+                          aria-label="Remove attachment"
                         >
                           <CloseIcon size={14} />
                         </button>
@@ -1174,7 +1175,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                             <input
                               type="text"
                               className={styles.pendingCaptionInput}
-                              placeholder="أضف تعليقاً"
+                              placeholder="Add a caption"
                               value={file.caption}
                               onChange={(e) => updatePendingFileCaption(file.id, e.target.value)}
                             />
@@ -1191,7 +1192,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                 </div>
                 {hasPendingAudio && (
                   <div className={styles.pendingNotice}>
-                    سيتم إرسال التسجيل الصوتي فقط. أرسل أو احذف التسجيل لمتابعة الكتابة.
+                    Only the audio recording will be sent. Send or delete the recording to continue typing.
                   </div>
                 )}
               </div>
@@ -1211,7 +1212,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                   onClick={() => fileInputRef.current?.click()}
                   className={styles.attachButton}
                   disabled={uploadingFile}
-                  aria-label="إرفاق ملف"
+                  aria-label="Attach file"
                 >
                   {uploadingFile ? <span className={styles.buttonSpinner} aria-hidden="true"></span> : <PaperclipIcon size={20} />}
                 </button>
@@ -1222,7 +1223,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                   onClick={startRecording}
                   className={styles.recordButton}
                   disabled={uploadingFile}
-                  aria-label="تسجيل صوتي"
+                  aria-label="Voice record"
                 >
                   <MicIcon size={20} />
                 </button>
@@ -1233,7 +1234,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                     type="button"
                     onClick={stopRecording}
                     className={styles.stopRecordButton}
-                    aria-label="إيقاف التسجيل"
+                    aria-label="Stop recording"
                   >
                     <StopIcon size={18} />
                   </button>
@@ -1241,7 +1242,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                     type="button"
                     onClick={cancelRecording}
                     className={styles.cancelRecordButton}
-                    aria-label="إلغاء التسجيل"
+                    aria-label="Cancel recording"
                   >
                     <CloseIcon size={16} />
                   </button>
@@ -1257,7 +1258,7 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
               <motion.button 
                 className={styles.submit} 
                 type="submit" 
-                aria-label="إرسال" 
+                aria-label="Send" 
                 disabled={uploadingFile || isRecording}
                 whileHover={{ scale: uploadingFile || isRecording ? 1 : 1.06 }}
                 whileTap={{ scale: uploadingFile || isRecording ? 1 : 0.94 }}
@@ -1272,11 +1273,11 @@ const DirectMessages = forwardRef(({ currentUser, session, supabase }, ref) => {
                     className={styles.mediaPreviewClose}
                     type="button"
                     onClick={() => setPreviewMedia(null)}
-                    aria-label="إغلاق المعاينة"
+                    aria-label="Close preview"
                   >
                     <CloseIcon size={18} />
                   </button>
-                  <img src={previewMedia.url} alt={previewMedia.name || 'صورة'} className={styles.mediaPreviewImage} />
+                  <img src={previewMedia.url} alt={previewMedia.name || 'Image'} className={styles.mediaPreviewImage} />
                   {previewMedia.name && (
                     <div className={styles.mediaPreviewCaption}>{previewMedia.name}</div>
                   )}

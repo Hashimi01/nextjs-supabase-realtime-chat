@@ -32,7 +32,7 @@ const Auth = ({ supabase }) => {
 
         setMessage({
           type: 'success',
-          text: 'تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني.',
+          text: 'Account created successfully! Please verify your email.',
         })
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -44,13 +44,13 @@ const Auth = ({ supabase }) => {
 
         setMessage({
           type: 'success',
-          text: 'تم تسجيل الدخول بنجاح!',
+          text: 'Logged in successfully!',
         })
       }
     } catch (error) {
       setMessage({
         type: 'error',
-        text: error.message || 'حدث خطأ. يرجى المحاولة مرة أخرى.',
+        text: error.message || 'An error occurred. Please try again.',
       })
     } finally {
       setLoading(false)
@@ -135,7 +135,7 @@ const Auth = ({ supabase }) => {
 
         <div className={styles.switch}>
           <span>
-            {isSignUp ? 'لديك حساب بالفعل؟ ' : 'ليس لديك حساب؟ '}
+            {isSignUp ? "Already have an account? " : "Don't have an account? "}
           </span>
           <button
             type="button"
