@@ -9,7 +9,7 @@
     "lint": "next lint --dir ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.103.2",
     "framer-motion": "^11.18.2",
     "next": "^16.2.3",
     "nodemailer": "^8.0.5",
